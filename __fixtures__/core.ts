@@ -16,3 +16,8 @@ export const group = vi.fn();
 export const setSecret = vi.fn();
 export const exportVariable = vi.fn();
 export const addPath = vi.fn();
+
+export const summary = {
+  addRaw: vi.fn().mockReturnThis(),
+  write: vi.fn().mockResolvedValue(undefined),
+};

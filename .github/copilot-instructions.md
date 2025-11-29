@@ -93,6 +93,15 @@ const octokit = new Octokit({ auth: token });
 const context = github.context;
 ```
 
+### File Extensions
+
+Use `.js` extensions in import statements for ESM compatibility:
+
+```typescript
+import { myFunction } from './utils.js'; // ✓ Correct
+import { myFunction } from './utils'; // ✗ Avoid
+```
+
 ## Testing Guidelines
 
 ### Test File Naming
