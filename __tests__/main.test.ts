@@ -73,7 +73,7 @@ describe('main', () => {
       const inputs = getInputs();
 
       expect(inputs.daysBack).toBe(7);
-      expect(inputs.timeWindow).toBe(20);
+      expect(inputs.timeWindow).toBe(60);
     });
 
     it('should throw error for invalid days-back value', async () => {
@@ -173,7 +173,7 @@ describe('main', () => {
         'Searching audit logs for enterprise: test-enterprise',
       );
       expect(mockCore.info).toHaveBeenCalledWith('Looking back 7 days');
-      expect(mockCore.info).toHaveBeenCalledWith('Time window: 20 seconds');
+      expect(mockCore.info).toHaveBeenCalledWith('Time window: 60 seconds');
       expect(mockCore.info).toHaveBeenCalledWith('No suspicious activity found.');
       expect(mockCore.info).toHaveBeenCalledWith('Scan complete.');
       expect(mockCore.setOutput).toHaveBeenCalledWith('suspicious-actors-count', 0);

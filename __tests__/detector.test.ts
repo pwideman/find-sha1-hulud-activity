@@ -5,7 +5,7 @@ import { AuditLogEvent } from '../src/types';
 describe('detector', () => {
   describe('findSuspiciousActivity', () => {
     it('should return empty array when no events', () => {
-      const result = findSuspiciousActivity([], 20);
+      const result = findSuspiciousActivity([], 60);
       expect(result).toEqual([]);
     });
 
@@ -16,10 +16,11 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
       expect(result).toEqual([]);
     });
 
@@ -30,16 +31,18 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': 1005000,
           action: 'workflows.completed_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
       expect(result).toEqual([]);
     });
 
@@ -51,26 +54,30 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'malicious-user',
           repo: 'org/target-repo',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': baseTime + 5000, // 5 seconds later
           action: 'workflows.completed_workflow_run',
           actor: 'malicious-user',
           repo: 'org/target-repo',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': baseTime + 10000, // 10 seconds later
           action: 'workflows.delete_workflow_run',
           actor: 'malicious-user',
           repo: 'org/target-repo',
+          workflow_run_id: 12345,
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
 
       expect(result).toHaveLength(1);
       expect(result[0].actor).toBe('malicious-user');
       expect(result[0].repository).toBe('org/target-repo');
+      expect(result[0].workflowRunId).toBe(12345);
       expect(result[0].timeRangeSeconds).toBe(10);
     });
 
@@ -82,22 +89,25 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
-          '@timestamp': baseTime + 10000, // 10 seconds later
+          '@timestamp': baseTime + 30000, // 30 seconds later
           action: 'workflows.completed_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
-          '@timestamp': baseTime + 25000, // 25 seconds later (outside 20s window)
+          '@timestamp': baseTime + 65000, // 65 seconds later (outside 60s window)
           action: 'workflows.delete_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
       expect(result).toHaveLength(0);
     });
 
@@ -110,18 +120,21 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'attacker',
           repo: 'org/repo1',
+          workflow_run_id: 11111,
         },
         {
           '@timestamp': baseTime + 3000,
           action: 'workflows.completed_workflow_run',
           actor: 'attacker',
           repo: 'org/repo1',
+          workflow_run_id: 11111,
         },
         {
           '@timestamp': baseTime + 6000,
           action: 'workflows.delete_workflow_run',
           actor: 'attacker',
           repo: 'org/repo1',
+          workflow_run_id: 11111,
         },
         // Second sequence
         {
@@ -129,26 +142,31 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'attacker',
           repo: 'org/repo2',
+          workflow_run_id: 22222,
         },
         {
           '@timestamp': baseTime + 64000,
           action: 'workflows.completed_workflow_run',
           actor: 'attacker',
           repo: 'org/repo2',
+          workflow_run_id: 22222,
         },
         {
           '@timestamp': baseTime + 68000,
           action: 'workflows.delete_workflow_run',
           actor: 'attacker',
           repo: 'org/repo2',
+          workflow_run_id: 22222,
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
 
       expect(result).toHaveLength(2);
       expect(result[0].repository).toBe('org/repo1');
+      expect(result[0].workflowRunId).toBe(11111);
       expect(result[1].repository).toBe('org/repo2');
+      expect(result[1].workflowRunId).toBe(22222);
     });
 
     it('should detect activities from different actors', () => {
@@ -159,40 +177,46 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'attacker1',
           repo: 'org/repo1',
+          workflow_run_id: 11111,
         },
         {
           '@timestamp': baseTime + 5000,
           action: 'workflows.completed_workflow_run',
           actor: 'attacker1',
           repo: 'org/repo1',
+          workflow_run_id: 11111,
         },
         {
           '@timestamp': baseTime + 8000,
           action: 'workflows.delete_workflow_run',
           actor: 'attacker1',
           repo: 'org/repo1',
+          workflow_run_id: 11111,
         },
         {
           '@timestamp': baseTime + 1000,
           action: 'workflows.created_workflow_run',
           actor: 'attacker2',
           repo: 'org/repo2',
+          workflow_run_id: 22222,
         },
         {
           '@timestamp': baseTime + 4000,
           action: 'workflows.completed_workflow_run',
           actor: 'attacker2',
           repo: 'org/repo2',
+          workflow_run_id: 22222,
         },
         {
           '@timestamp': baseTime + 7000,
           action: 'workflows.delete_workflow_run',
           actor: 'attacker2',
           repo: 'org/repo2',
+          workflow_run_id: 22222,
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
 
       expect(result).toHaveLength(2);
       const actors = new Set(result.map((r) => r.actor));
@@ -200,7 +224,7 @@ describe('detector', () => {
       expect(actors.has('attacker2')).toBe(true);
     });
 
-    it('should not match events from different repositories', () => {
+    it('should not match events from different workflow runs', () => {
       const baseTime = 1700000000000;
       const events: AuditLogEvent[] = [
         {
@@ -208,46 +232,52 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 11111,
         },
         {
           '@timestamp': baseTime + 5000,
           action: 'workflows.completed_workflow_run',
           actor: 'user1',
-          repo: 'org/repo2', // Different repo
+          repo: 'org/repo1',
+          workflow_run_id: 22222, // Different workflow run
         },
         {
           '@timestamp': baseTime + 8000,
           action: 'workflows.delete_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 11111,
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
       expect(result).toHaveLength(0);
     });
 
-    it('should ignore events without repo', () => {
+    it('should ignore events without workflow_run_id', () => {
       const baseTime = 1700000000000;
       const events: AuditLogEvent[] = [
         {
           '@timestamp': baseTime,
           action: 'workflows.created_workflow_run',
           actor: 'user1',
+          repo: 'org/repo1',
         },
         {
           '@timestamp': baseTime + 5000,
           action: 'workflows.completed_workflow_run',
           actor: 'user1',
+          repo: 'org/repo1',
         },
         {
           '@timestamp': baseTime + 8000,
           action: 'workflows.delete_workflow_run',
           actor: 'user1',
+          repo: 'org/repo1',
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
       expect(result).toHaveLength(0);
     });
 
@@ -259,28 +289,32 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': baseTime + 2000,
           action: 'repo.access', // Unrelated action
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': baseTime + 5000,
           action: 'workflows.completed_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': baseTime + 8000,
           action: 'workflows.delete_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
       expect(result).toHaveLength(1);
     });
 
@@ -292,18 +326,21 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': baseTime + 25000, // 25 seconds
           action: 'workflows.completed_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': baseTime + 55000, // 55 seconds
           action: 'workflows.delete_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
       ];
 
@@ -324,22 +361,25 @@ describe('detector', () => {
           action: 'workflows.created_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': baseTime, // Completed comes first
           action: 'workflows.completed_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
         {
           '@timestamp': baseTime + 15000,
           action: 'workflows.delete_workflow_run',
           actor: 'user1',
           repo: 'org/repo1',
+          workflow_run_id: 12345,
         },
       ];
 
-      const result = findSuspiciousActivity(events, 20);
+      const result = findSuspiciousActivity(events, 60);
       expect(result).toHaveLength(0);
     });
   });

@@ -1,9 +1,6 @@
 import * as core from '@actions/core';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { DefaultArtifactClient } from '@actions/artifact';
 import { fetchAuditLogEvents } from './audit-log';
+import { uploadCsvArtifact } from './artifact-writer';
 import { findSuspiciousActivity } from './detector';
 import { generateCsv, generateSummary, writeSummary } from './summary';
 import { ActionInputs } from './types';
@@ -12,7 +9,7 @@ export function getInputs(): ActionInputs {
   const token = core.getInput('token', { required: true });
   const enterprise = core.getInput('enterprise', { required: true });
   const daysBackStr = core.getInput('days-back') || '7';
-  const timeWindowStr = core.getInput('time-window') || '20';
+  const timeWindowStr = core.getInput('time-window') || '60';
 
   const daysBack = parseInt(daysBackStr, 10);
   if (isNaN(daysBack) || daysBack <= 0) {
@@ -60,14 +57,7 @@ export async function run(): Promise<void> {
 
     if (suspiciousActivities.length > 0) {
       const csv = generateCsv(suspiciousActivities);
-      const artifactDir = path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'sha1-hulud-artifacts');
-      fs.mkdirSync(artifactDir, { recursive: true });
-
-      const csvPath = path.join(artifactDir, 'suspicious-activity.csv');
-      fs.writeFileSync(csvPath, csv);
-
-      const artifact = new DefaultArtifactClient();
-      await artifact.uploadArtifact('sha1-hulud-suspicious-activity', [csvPath], artifactDir);
+      await uploadCsvArtifact(csv);
       core.info('Uploaded suspicious activity CSV as workflow artifact');
     }
 

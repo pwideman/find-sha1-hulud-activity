@@ -6,11 +6,11 @@ GitHub Action to find potential Sha1-Hulud activity in Enterprise Organization a
 
 The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in repositories that a compromised user has access to. This action detects a characteristic pattern in the GitHub Enterprise audit logs:
 
-1. A sequence of 3 events from the same actor, on the same repository:
+1. A sequence of 3 events from the same actor, for the same workflow run:
    - `workflows.created_workflow_run`
    - `workflows.completed_workflow_run`
    - `workflows.delete_workflow_run`
-2. These events occur close to one another (typically within 20 seconds)
+2. These events occur close to one another (typically within 60 seconds)
 
 ## Usage
 
@@ -26,8 +26,8 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
     # Number of days to search back in audit logs (optional, default: 7)
     days-back: '7'
 
-    # Time window in seconds within which all 3 events must occur (optional, default: 20)
-    time-window: '20'
+    # Time window in seconds within which all 3 events must occur (optional, default: 60)
+    time-window: '60'
 ```
 
 ## Inputs
@@ -37,7 +37,7 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
 | `token`       | GitHub token with `admin:enterprise` scope for audit log access | Yes      | -       |
 | `enterprise`  | The slug of the GitHub Enterprise to query audit logs for       | Yes      | -       |
 | `days-back`   | Number of days to search back in audit logs                     | No       | `7`     |
-| `time-window` | Time window in seconds within which all 3 events must occur     | No       | `20`    |
+| `time-window` | Time window in seconds within which all 3 events must occur     | No       | `60`    |
 
 ## Outputs
 
@@ -52,7 +52,7 @@ The action produces a workflow summary containing:
 
 - Scan parameters (days scanned, time window)
 - Statistics (number of suspicious sequences, unique actors, affected repositories)
-- A table with details of each suspicious activity (actor, repository, timestamps, duration)
+- A table with details of each suspicious activity (actor, repository, workflow run ID, timestamps, duration)
 
 ## Artifacts
 
@@ -78,7 +78,7 @@ jobs:
           token: ${{ secrets.ENTERPRISE_AUDIT_TOKEN }}
           enterprise: 'my-enterprise'
           days-back: '7'
-          time-window: '20'
+          time-window: '60'
 
       - name: Check for suspicious activity
         if: steps.scan.outputs.suspicious-actors-count > 0

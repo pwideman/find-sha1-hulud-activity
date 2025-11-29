@@ -33,12 +33,16 @@ export function generateSummary(
 
   lines.push('## Suspicious Activity Details');
   lines.push('');
-  lines.push('| Actor | Repository | Created At | Completed At | Deleted At | Duration (s) |');
-  lines.push('|-------|------------|------------|--------------|------------|--------------|');
+  lines.push(
+    '| Actor | Repository | Workflow Run ID | Created At | Completed At | Deleted At | Duration (s) |',
+  );
+  lines.push(
+    '|-------|------------|-----------------|------------|--------------|------------|--------------|',
+  );
 
   for (const activity of activities) {
     lines.push(
-      `| ${activity.actor} | ${activity.repository} | ${formatDate(activity.createdAt)} | ${formatDate(activity.completedAt)} | ${formatDate(activity.deletedAt)} | ${activity.timeRangeSeconds} |`,
+      `| ${activity.actor} | ${activity.repository} | ${activity.workflowRunId} | ${formatDate(activity.createdAt)} | ${formatDate(activity.completedAt)} | ${formatDate(activity.deletedAt)} | ${activity.timeRangeSeconds} |`,
     );
   }
 
@@ -56,11 +60,13 @@ function formatDate(date: Date): string {
 export function generateCsv(activities: SuspiciousActivity[]): string {
   const lines: string[] = [];
 
-  lines.push('Actor,Repository,Created At,Completed At,Deleted At,Duration (seconds)');
+  lines.push(
+    'Actor,Repository,Workflow Run ID,Created At,Completed At,Deleted At,Duration (seconds)',
+  );
 
   for (const activity of activities) {
     lines.push(
-      `"${activity.actor}","${activity.repository}","${activity.createdAt.toISOString()}","${activity.completedAt.toISOString()}","${activity.deletedAt.toISOString()}",${activity.timeRangeSeconds}`,
+      `"${activity.actor}","${activity.repository}",${activity.workflowRunId},"${activity.createdAt.toISOString()}","${activity.completedAt.toISOString()}","${activity.deletedAt.toISOString()}",${activity.timeRangeSeconds}`,
     );
   }
 

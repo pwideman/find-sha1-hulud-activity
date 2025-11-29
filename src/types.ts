@@ -3,11 +3,13 @@ export interface AuditLogEvent {
   action: string;
   actor: string;
   repo?: string;
+  workflow_run_id?: number;
 }
 
 export interface SuspiciousActivity {
   actor: string;
   repository: string;
+  workflowRunId: number;
   createdAt: Date;
   completedAt: Date;
   deletedAt: Date;

@@ -20,7 +20,7 @@ inputs:
   time-window:
     description: 'Time window in seconds within which all 3 workflow events must occur to be flagged'
     required: false
-    default: '20'
+    default: '60'
 
 outputs:
   suspicious-actors-count:
