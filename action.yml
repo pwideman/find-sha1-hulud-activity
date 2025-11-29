@@ -21,14 +21,16 @@ inputs:
     description: 'Time window in seconds within which all 3 workflow events must occur to be flagged'
     required: false
     default: '60'
+  output-dir:
+    description: 'Directory path to write the CSV file containing suspicious activity details (can be relative or absolute)'
+    required: false
+    default: '.'
 
 outputs:
   suspicious-actors-count:
     description: 'Number of actors with suspicious activity found'
   suspicious-activities-count:
     description: 'Total number of suspicious activity sequences found'
-  csv-path:
-    description: 'Path to the CSV file containing suspicious activity details (only set if suspicious activity is found)'
 
 runs:
   using: 'node20'

@@ -10,6 +10,7 @@ export function getInputs(): ActionInputs {
   const enterprise = core.getInput('enterprise', { required: true });
   const daysBackStr = core.getInput('days-back') || '7';
   const timeWindowStr = core.getInput('time-window') || '60';
+  const outputDir = core.getInput('output-dir') || '.';
 
   const daysBack = parseInt(daysBackStr, 10);
   if (isNaN(daysBack) || daysBack <= 0) {
@@ -21,7 +22,7 @@ export function getInputs(): ActionInputs {
     throw new Error(`Invalid time-window value: ${timeWindowStr}`);
   }
 
-  return { token, enterprise, daysBack, timeWindow };
+  return { token, enterprise, daysBack, timeWindow, outputDir };
 }
 
 export async function run(): Promise<void> {
@@ -57,8 +58,7 @@ export async function run(): Promise<void> {
 
     if (suspiciousActivities.length > 0) {
       const csv = generateCsv(suspiciousActivities);
-      const csvPath = writeCsvToFile(csv);
-      core.setOutput('csv-path', csvPath);
+      const csvPath = writeCsvToFile(csv, inputs.outputDir);
       core.info(`CSV file written to: ${csvPath}`);
     }
 

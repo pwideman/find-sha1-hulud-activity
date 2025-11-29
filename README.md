@@ -28,24 +28,27 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
 
     # Time window in seconds within which all 3 events must occur (optional, default: 60)
     time-window: '60'
+
+    # Directory to write the CSV file (optional, default: '.')
+    output-dir: 'output'
 ```
 
 ## Inputs
 
-| Input         | Description                                                     | Required | Default |
-| ------------- | --------------------------------------------------------------- | -------- | ------- |
-| `token`       | GitHub token with `admin:enterprise` scope for audit log access | Yes      | -       |
-| `enterprise`  | The slug of the GitHub Enterprise to query audit logs for       | Yes      | -       |
-| `days-back`   | Number of days to search back in audit logs                     | No       | `7`     |
-| `time-window` | Time window in seconds within which all 3 events must occur     | No       | `60`    |
+| Input         | Description                                                        | Required | Default |
+| ------------- | ------------------------------------------------------------------ | -------- | ------- |
+| `token`       | GitHub token with `admin:enterprise` scope for audit log access    | Yes      | -       |
+| `enterprise`  | The slug of the GitHub Enterprise to query audit logs for          | Yes      | -       |
+| `days-back`   | Number of days to search back in audit logs                        | No       | `7`     |
+| `time-window` | Time window in seconds within which all 3 events must occur        | No       | `60`    |
+| `output-dir`  | Directory path to write the CSV file (can be relative or absolute) | No       | `.`     |
 
 ## Outputs
 
-| Output                        | Description                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------- |
-| `suspicious-actors-count`     | Number of actors with suspicious activity found                                   |
-| `suspicious-activities-count` | Total number of suspicious activity sequences                                     |
-| `csv-path`                    | Path to CSV file with suspicious activity details (only set if activity is found) |
+| Output                        | Description                                     |
+| ----------------------------- | ----------------------------------------------- |
+| `suspicious-actors-count`     | Number of actors with suspicious activity found |
+| `suspicious-activities-count` | Total number of suspicious activity sequences   |
 
 ## Workflow Summary
 
@@ -57,7 +60,7 @@ The action produces a workflow summary containing:
 
 ## CSV Output
 
-When suspicious activity is found, the action writes a CSV file containing the detailed findings and outputs the path via the `csv-path` output. The calling workflow can then upload this as an artifact or process it as needed.
+When suspicious activity is found, the action writes a CSV file named `suspicious-activity.csv` to the directory specified by the `output-dir` input. The calling workflow can then upload this as an artifact or process it as needed.
 
 ## Example Workflow
 
@@ -81,13 +84,14 @@ jobs:
           enterprise: 'my-enterprise'
           days-back: '7'
           time-window: '60'
+          output-dir: 'output'
 
       - name: Upload CSV artifact
-        if: steps.scan.outputs.csv-path != ''
+        if: steps.scan.outputs.suspicious-actors-count > 0
         uses: actions/upload-artifact@v4
         with:
           name: sha1-hulud-suspicious-activity
-          path: ${{ steps.scan.outputs.csv-path }}
+          path: output/suspicious-activity.csv
 
       - name: Check for suspicious activity
         if: steps.scan.outputs.suspicious-actors-count > 0

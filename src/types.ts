@@ -21,4 +21,5 @@ export interface ActionInputs {
   enterprise: string;
   daysBack: number;
   timeWindow: number;
+  outputDir: string;
 }

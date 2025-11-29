@@ -27214,14 +27214,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.writeCsvToFile = writeCsvToFile;
 const fs = __importStar(__nccwpck_require__(9896));
-const os = __importStar(__nccwpck_require__(857));
 const path = __importStar(__nccwpck_require__(6928));
-const ARTIFACT_DIR_NAME = 'sha1-hulud-artifacts';
-const ARTIFACT_FILE_NAME = 'suspicious-activity.csv';
-function writeCsvToFile(csvContent) {
-    const artifactDir = path.join(process.env.RUNNER_TEMP || os.tmpdir(), ARTIFACT_DIR_NAME);
-    fs.mkdirSync(artifactDir, { recursive: true });
-    const csvPath = path.join(artifactDir, ARTIFACT_FILE_NAME);
+const CSV_FILE_NAME = 'suspicious-activity.csv';
+function writeCsvToFile(csvContent, outputDir) {
+    fs.mkdirSync(outputDir, { recursive: true });
+    const csvPath = path.join(outputDir, CSV_FILE_NAME);
     fs.writeFileSync(csvPath, csvContent);
     return csvPath;
 }
@@ -27408,6 +27405,7 @@ function getInputs() {
     const enterprise = core.getInput('enterprise', { required: true });
     const daysBackStr = core.getInput('days-back') || '7';
     const timeWindowStr = core.getInput('time-window') || '60';
+    const outputDir = core.getInput('output-dir') || '.';
     const daysBack = parseInt(daysBackStr, 10);
     if (isNaN(daysBack) || daysBack <= 0) {
         throw new Error(`Invalid days-back value: ${daysBackStr}`);
@@ -27416,7 +27414,7 @@ function getInputs() {
     if (isNaN(timeWindow) || timeWindow <= 0) {
         throw new Error(`Invalid time-window value: ${timeWindowStr}`);
     }
-    return { token, enterprise, daysBack, timeWindow };
+    return { token, enterprise, daysBack, timeWindow, outputDir };
 }
 async function run() {
     try {
@@ -27442,8 +27440,7 @@ async function run() {
         await (0, summary_1.writeSummary)(summary);
         if (suspiciousActivities.length > 0) {
             const csv = (0, summary_1.generateCsv)(suspiciousActivities);
-            const csvPath = (0, artifact_writer_1.writeCsvToFile)(csv);
-            core.setOutput('csv-path', csvPath);
+            const csvPath = (0, artifact_writer_1.writeCsvToFile)(csv, inputs.outputDir);
             core.info(`CSV file written to: ${csvPath}`);
         }
         core.info('Scan complete.');
