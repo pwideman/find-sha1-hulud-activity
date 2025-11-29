@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { DefaultArtifactClient } from '@actions/artifact';
 import { fetchAuditLogEvents } from './audit-log';
@@ -59,7 +60,7 @@ export async function run(): Promise<void> {
 
     if (suspiciousActivities.length > 0) {
       const csv = generateCsv(suspiciousActivities);
-      const artifactDir = path.join(process.env.RUNNER_TEMP || '/tmp', 'sha1-hulud-artifacts');
+      const artifactDir = path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'sha1-hulud-artifacts');
       fs.mkdirSync(artifactDir, { recursive: true });
 
       const csvPath = path.join(artifactDir, 'suspicious-activity.csv');

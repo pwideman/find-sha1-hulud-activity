@@ -3,6 +3,12 @@ import { AuditLogEvent } from './types';
 
 const PAGE_SIZE = 100;
 
+const WORKFLOW_ACTIONS = [
+  'workflows.created_workflow_run',
+  'workflows.completed_workflow_run',
+  'workflows.delete_workflow_run',
+] as const;
+
 export async function fetchAuditLogEvents(
   token: string,
   enterprise: string,
@@ -17,7 +23,8 @@ export async function fetchAuditLogEvents(
   const allEvents: AuditLogEvent[] = [];
   let cursor: string | undefined;
 
-  const phrase = `action:workflows.created_workflow_run action:workflows.completed_workflow_run action:workflows.delete_workflow_run created:>=${startDateString}`;
+  const actionFilters = WORKFLOW_ACTIONS.map((action) => `action:${action}`).join(' ');
+  const phrase = `${actionFilters} created:>=${startDateString}`;
 
   do {
     const response = await octokit.request('GET /enterprises/{enterprise}/audit-log', {
