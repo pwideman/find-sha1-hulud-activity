@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import { fetchAuditLogEvents } from './audit-log';
-import { uploadCsvArtifact } from './artifact-writer';
+import { writeCsvToFile } from './artifact-writer';
 import { findSuspiciousActivity } from './detector';
 import { generateCsv, generateSummary, writeSummary } from './summary';
 import { ActionInputs } from './types';
@@ -57,8 +57,9 @@ export async function run(): Promise<void> {
 
     if (suspiciousActivities.length > 0) {
       const csv = generateCsv(suspiciousActivities);
-      await uploadCsvArtifact(csv);
-      core.info('Uploaded suspicious activity CSV as workflow artifact');
+      const csvPath = writeCsvToFile(csv);
+      core.setOutput('csv-path', csvPath);
+      core.info(`CSV file written to: ${csvPath}`);
     }
 
     core.info('Scan complete.');

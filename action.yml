@@ -27,6 +27,8 @@ outputs:
     description: 'Number of actors with suspicious activity found'
   suspicious-activities-count:
     description: 'Total number of suspicious activity sequences found'
+  csv-path:
+    description: 'Path to the CSV file containing suspicious activity details (only set if suspicious activity is found)'
 
 runs:
   using: 'node20'

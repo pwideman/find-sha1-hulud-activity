@@ -41,10 +41,11 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
 
 ## Outputs
 
-| Output                        | Description                                     |
-| ----------------------------- | ----------------------------------------------- |
-| `suspicious-actors-count`     | Number of actors with suspicious activity found |
-| `suspicious-activities-count` | Total number of suspicious activity sequences   |
+| Output                        | Description                                                                       |
+| ----------------------------- | --------------------------------------------------------------------------------- |
+| `suspicious-actors-count`     | Number of actors with suspicious activity found                                   |
+| `suspicious-activities-count` | Total number of suspicious activity sequences                                     |
+| `csv-path`                    | Path to CSV file with suspicious activity details (only set if activity is found) |
 
 ## Workflow Summary
 
@@ -54,9 +55,9 @@ The action produces a workflow summary containing:
 - Statistics (number of suspicious sequences, unique actors, affected repositories)
 - A table with details of each suspicious activity (actor, repository, workflow run ID, timestamps, duration)
 
-## Artifacts
+## CSV Output
 
-When suspicious activity is found, the action uploads a CSV artifact named `sha1-hulud-suspicious-activity` containing the detailed findings.
+When suspicious activity is found, the action writes a CSV file containing the detailed findings and outputs the path via the `csv-path` output. The calling workflow can then upload this as an artifact or process it as needed.
 
 ## Example Workflow
 
@@ -73,12 +74,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Scan Enterprise Audit Logs
+        id: scan
         uses: pwideman/find-sha1-hulud-activity@v0
         with:
           token: ${{ secrets.ENTERPRISE_AUDIT_TOKEN }}
           enterprise: 'my-enterprise'
           days-back: '7'
           time-window: '60'
+
+      - name: Upload CSV artifact
+        if: steps.scan.outputs.csv-path != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: sha1-hulud-suspicious-activity
+          path: ${{ steps.scan.outputs.csv-path }}
 
       - name: Check for suspicious activity
         if: steps.scan.outputs.suspicious-actors-count > 0
