@@ -16,10 +16,14 @@ describe('main', () => {
       vi.doMock('@actions/core', () => ({
         getInput: vi.fn((name: string) => {
           switch (name) {
-            case 'token':
-              return 'test-token';
-            case 'enterprise':
-              return 'test-enterprise';
+            case 'org':
+              return 'test-org';
+            case 'app-id':
+              return '12345';
+            case 'app-installation-id':
+              return '67890';
+            case 'app-private-key':
+              return 'test-private-key';
             case 'days-back':
               return '14';
             case 'time-window':
@@ -41,8 +45,10 @@ describe('main', () => {
       const { getInputs } = await import('../src/main');
       const inputs = getInputs();
 
-      expect(inputs.token).toBe('test-token');
-      expect(inputs.enterprise).toBe('test-enterprise');
+      expect(inputs.org).toBe('test-org');
+      expect(inputs.appId).toBe('12345');
+      expect(inputs.appInstallationId).toBe('67890');
+      expect(inputs.appPrivateKey).toBe('test-private-key');
       expect(inputs.daysBack).toBe(14);
       expect(inputs.timeWindow).toBe(30);
     });
@@ -51,10 +57,14 @@ describe('main', () => {
       vi.doMock('@actions/core', () => ({
         getInput: vi.fn((name: string) => {
           switch (name) {
-            case 'token':
-              return 'test-token';
-            case 'enterprise':
-              return 'test-enterprise';
+            case 'org':
+              return 'test-org';
+            case 'app-id':
+              return '12345';
+            case 'app-installation-id':
+              return '67890';
+            case 'app-private-key':
+              return 'test-private-key';
             default:
               return '';
           }
@@ -80,10 +90,14 @@ describe('main', () => {
       vi.doMock('@actions/core', () => ({
         getInput: vi.fn((name: string) => {
           switch (name) {
-            case 'token':
-              return 'test-token';
-            case 'enterprise':
-              return 'test-enterprise';
+            case 'org':
+              return 'test-org';
+            case 'app-id':
+              return '12345';
+            case 'app-installation-id':
+              return '67890';
+            case 'app-private-key':
+              return 'test-private-key';
             case 'days-back':
               return 'invalid';
             default:
@@ -108,10 +122,14 @@ describe('main', () => {
       vi.doMock('@actions/core', () => ({
         getInput: vi.fn((name: string) => {
           switch (name) {
-            case 'token':
-              return 'test-token';
-            case 'enterprise':
-              return 'test-enterprise';
+            case 'org':
+              return 'test-org';
+            case 'app-id':
+              return '12345';
+            case 'app-installation-id':
+              return '67890';
+            case 'app-private-key':
+              return 'test-private-key';
             case 'time-window':
               return '-5';
             default:
@@ -138,10 +156,14 @@ describe('main', () => {
       const mockCore = {
         getInput: vi.fn((name: string) => {
           switch (name) {
-            case 'token':
-              return 'test-token';
-            case 'enterprise':
-              return 'test-enterprise';
+            case 'org':
+              return 'test-org';
+            case 'app-id':
+              return '12345';
+            case 'app-installation-id':
+              return '67890';
+            case 'app-private-key':
+              return 'test-private-key';
             default:
               return '';
           }
@@ -157,11 +179,6 @@ describe('main', () => {
       };
 
       vi.doMock('@actions/core', () => mockCore);
-      vi.doMock('@actions/artifact', () => ({
-        DefaultArtifactClient: vi.fn().mockImplementation(() => ({
-          uploadArtifact: vi.fn().mockResolvedValue(undefined),
-        })),
-      }));
       vi.doMock('../src/audit-log', () => ({
         fetchAuditLogEvents: vi.fn().mockResolvedValue([]),
       }));
@@ -169,9 +186,7 @@ describe('main', () => {
       const { run } = await import('../src/main');
       await run();
 
-      expect(mockCore.info).toHaveBeenCalledWith(
-        'Searching audit logs for enterprise: test-enterprise',
-      );
+      expect(mockCore.info).toHaveBeenCalledWith('Searching audit logs for organization: test-org');
       expect(mockCore.info).toHaveBeenCalledWith('Looking back 7 days');
       expect(mockCore.info).toHaveBeenCalledWith('Time window: 60 seconds');
       expect(mockCore.info).toHaveBeenCalledWith('No suspicious activity found.');
@@ -197,11 +212,6 @@ describe('main', () => {
       };
 
       vi.doMock('@actions/core', () => mockCore);
-      vi.doMock('@actions/artifact', () => ({
-        DefaultArtifactClient: vi.fn().mockImplementation(() => ({
-          uploadArtifact: vi.fn().mockResolvedValue(undefined),
-        })),
-      }));
       vi.doMock('../src/audit-log', () => ({
         fetchAuditLogEvents: vi.fn().mockResolvedValue([]),
       }));

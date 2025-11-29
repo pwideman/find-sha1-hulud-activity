@@ -27126,10 +27126,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.writeCsvToFile = writeCsvToFile;
 const fs = __importStar(__nccwpck_require__(9896));
 const path = __importStar(__nccwpck_require__(6928));
-const CSV_FILE_NAME = 'suspicious-activity.csv';
-function writeCsvToFile(csvContent, outputDir) {
+function writeCsvToFile(csvContent, outputDir, org) {
     fs.mkdirSync(outputDir, { recursive: true });
-    const csvPath = path.join(outputDir, CSV_FILE_NAME);
+    const csvFileName = `suspicious-activity-${org}.csv`;
+    const csvPath = path.join(outputDir, csvFileName);
     fs.writeFileSync(csvPath, csvContent);
     return csvPath;
 }
@@ -27150,8 +27150,12 @@ const WORKFLOW_ACTIONS = [
     'workflows.completed_workflow_run',
     'workflows.delete_workflow_run',
 ];
-async function fetchAuditLogEvents(token, enterprise, daysBack) {
-    const octokit = new octokit_1.Octokit({ auth: token });
+async function fetchAuditLogEvents(appId, appPrivateKey, appInstallationId, org, daysBack) {
+    const app = new octokit_1.App({
+        appId,
+        privateKey: appPrivateKey,
+    });
+    const octokit = await app.getInstallationOctokit(parseInt(appInstallationId, 10));
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysBack);
     const startDateString = startDate.toISOString().split('T')[0];
@@ -27160,8 +27164,8 @@ async function fetchAuditLogEvents(token, enterprise, daysBack) {
     const actionFilters = WORKFLOW_ACTIONS.map((action) => `action:${action}`).join(' ');
     const phrase = `${actionFilters} created:>=${startDateString}`;
     do {
-        const response = await octokit.request('GET /enterprises/{enterprise}/audit-log', {
-            enterprise,
+        const response = await octokit.request('GET /orgs/{org}/audit-log', {
+            org,
             phrase,
             per_page: PAGE_SIZE,
             after: cursor,
@@ -27309,8 +27313,10 @@ const audit_log_js_1 = __nccwpck_require__(5595);
 const detector_js_1 = __nccwpck_require__(9157);
 const summary_js_1 = __nccwpck_require__(8855);
 function getInputs() {
-    const token = core.getInput('token', { required: true });
-    const enterprise = core.getInput('enterprise', { required: true });
+    const org = core.getInput('org', { required: true });
+    const appId = core.getInput('app-id', { required: true });
+    const appInstallationId = core.getInput('app-installation-id', { required: true });
+    const appPrivateKey = core.getInput('app-private-key', { required: true });
     const daysBackStr = core.getInput('days-back') || '7';
     const timeWindowStr = core.getInput('time-window') || '60';
     const outputDir = core.getInput('output-dir') || '.';
@@ -27322,16 +27328,16 @@ function getInputs() {
     if (isNaN(timeWindow) || timeWindow <= 0) {
         throw new Error(`Invalid time-window value: ${timeWindowStr}`);
     }
-    return { token, enterprise, daysBack, timeWindow, outputDir };
+    return { org, appId, appInstallationId, appPrivateKey, daysBack, timeWindow, outputDir };
 }
 async function run() {
     try {
         const inputs = getInputs();
-        core.info(`Searching audit logs for enterprise: ${inputs.enterprise}`);
+        core.info(`Searching audit logs for organization: ${inputs.org}`);
         core.info(`Looking back ${inputs.daysBack} days`);
         core.info(`Time window: ${inputs.timeWindow} seconds`);
         core.info('Fetching audit log events...');
-        const events = await (0, audit_log_js_1.fetchAuditLogEvents)(inputs.token, inputs.enterprise, inputs.daysBack);
+        const events = await (0, audit_log_js_1.fetchAuditLogEvents)(inputs.appId, inputs.appPrivateKey, inputs.appInstallationId, inputs.org, inputs.daysBack);
         core.info(`Retrieved ${events.length} workflow events`);
         core.info('Analyzing events for suspicious activity...');
         const suspiciousActivities = (0, detector_js_1.findSuspiciousActivity)(events, inputs.timeWindow);
@@ -27348,7 +27354,7 @@ async function run() {
         await (0, summary_js_1.writeSummary)(summary);
         if (suspiciousActivities.length > 0) {
             const csv = (0, summary_js_1.generateCsv)(suspiciousActivities);
-            const csvPath = (0, artifact_writer_js_1.writeCsvToFile)(csv, inputs.outputDir);
+            const csvPath = (0, artifact_writer_js_1.writeCsvToFile)(csv, inputs.outputDir, inputs.org);
             core.info(`CSV file written to: ${csvPath}`);
         }
         core.info('Scan complete.');

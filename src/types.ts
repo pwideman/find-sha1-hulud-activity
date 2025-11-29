@@ -17,8 +17,10 @@ export interface SuspiciousActivity {
 }
 
 export interface ActionInputs {
-  token: string;
-  enterprise: string;
+  org: string;
+  appId: string;
+  appInstallationId: string;
+  appPrivateKey: string;
   daysBack: number;
   timeWindow: number;
   outputDir: string;

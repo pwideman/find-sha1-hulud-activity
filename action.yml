@@ -1,5 +1,5 @@
 name: 'Find Sha1-Hulud Activity'
-description: 'Custom action to look for potential Sha1-Hulud activity related to your GitHub Enterprise'
+description: 'Custom action to look for potential Sha1-Hulud activity in GitHub Organization audit logs'
 author: 'Paul Wideman'
 
 branding:
@@ -7,11 +7,17 @@ branding:
   color: 'orange'
 
 inputs:
-  token:
-    description: 'GitHub token with audit log access (requires admin:enterprise scope for enterprise audit logs)'
+  org:
+    description: 'The name of the GitHub Organization to query audit logs for'
     required: true
-  enterprise:
-    description: 'The slug of the GitHub Enterprise to query audit logs for'
+  app-id:
+    description: 'GitHub App ID for authentication'
+    required: true
+  app-installation-id:
+    description: 'GitHub App Installation ID for authentication'
+    required: true
+  app-private-key:
+    description: 'GitHub App private key for authentication'
     required: true
   days-back:
     description: 'Number of days to search back in audit logs'

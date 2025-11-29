@@ -1,12 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const CSV_FILE_NAME = 'suspicious-activity.csv';
-
-export function writeCsvToFile(csvContent: string, outputDir: string): string {
+export function writeCsvToFile(csvContent: string, outputDir: string, org: string): string {
   fs.mkdirSync(outputDir, { recursive: true });
 
-  const csvPath = path.join(outputDir, CSV_FILE_NAME);
+  const csvFileName = `suspicious-activity-${org}.csv`;
+  const csvPath = path.join(outputDir, csvFileName);
   fs.writeFileSync(csvPath, csvContent);
 
   return csvPath;

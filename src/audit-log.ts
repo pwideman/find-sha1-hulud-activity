@@ -1,4 +1,4 @@
-import { Octokit } from 'octokit';
+import { App } from 'octokit';
 import { AuditLogEvent } from './types.js';
 
 const PAGE_SIZE = 100;
@@ -10,11 +10,18 @@ const WORKFLOW_ACTIONS = [
 ] as const;
 
 export async function fetchAuditLogEvents(
-  token: string,
-  enterprise: string,
+  appId: string,
+  appPrivateKey: string,
+  appInstallationId: string,
+  org: string,
   daysBack: number,
 ): Promise<AuditLogEvent[]> {
-  const octokit = new Octokit({ auth: token });
+  const app = new App({
+    appId,
+    privateKey: appPrivateKey,
+  });
+
+  const octokit = await app.getInstallationOctokit(parseInt(appInstallationId, 10));
 
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - daysBack);
@@ -27,8 +34,8 @@ export async function fetchAuditLogEvents(
   const phrase = `${actionFilters} created:>=${startDateString}`;
 
   do {
-    const response = await octokit.request('GET /enterprises/{enterprise}/audit-log', {
-      enterprise,
+    const response = await octokit.request('GET /orgs/{org}/audit-log', {
+      org,
       phrase,
       per_page: PAGE_SIZE,
       after: cursor,

@@ -1,10 +1,10 @@
 # find-sha1-hulud-activity
 
-GitHub Action to find potential Sha1-Hulud activity in Enterprise Organization audit logs.
+GitHub Action to find potential Sha1-Hulud activity in GitHub Organization audit logs.
 
 ## Overview
 
-The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in repositories that a compromised user has access to. This action detects a characteristic pattern in the GitHub Enterprise audit logs:
+The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in repositories that a compromised user has access to. This action detects a characteristic pattern in the GitHub Organization audit logs:
 
 1. A sequence of 3 events from the same actor, for the same workflow run:
    - `workflows.created_workflow_run`
@@ -17,11 +17,13 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
 ```yaml
 - uses: pwideman/find-sha1-hulud-activity@v0
   with:
-    # GitHub token with admin:enterprise scope for audit log access
-    token: ${{ secrets.ENTERPRISE_AUDIT_TOKEN }}
+    # The name of the GitHub Organization to query
+    org: 'my-org'
 
-    # The slug of the GitHub Enterprise to query
-    enterprise: 'my-enterprise'
+    # GitHub App authentication
+    app-id: ${{ secrets.APP_ID }}
+    app-installation-id: ${{ secrets.APP_INSTALLATION_ID }}
+    app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
     # Number of days to search back in audit logs (optional, default: 7)
     days-back: '7'
@@ -35,13 +37,15 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
 
 ## Inputs
 
-| Input         | Description                                                        | Required | Default |
-| ------------- | ------------------------------------------------------------------ | -------- | ------- |
-| `token`       | GitHub token with `admin:enterprise` scope for audit log access    | Yes      | -       |
-| `enterprise`  | The slug of the GitHub Enterprise to query audit logs for          | Yes      | -       |
-| `days-back`   | Number of days to search back in audit logs                        | No       | `7`     |
-| `time-window` | Time window in seconds within which all 3 events must occur        | No       | `60`    |
-| `output-dir`  | Directory path to write the CSV file (can be relative or absolute) | No       | `.`     |
+| Input                 | Description                                                        | Required | Default |
+| --------------------- | ------------------------------------------------------------------ | -------- | ------- |
+| `org`                 | The name of the GitHub Organization to query audit logs for        | Yes      | -       |
+| `app-id`              | GitHub App ID for authentication                                   | Yes      | -       |
+| `app-installation-id` | GitHub App Installation ID for authentication                      | Yes      | -       |
+| `app-private-key`     | GitHub App private key for authentication                          | Yes      | -       |
+| `days-back`           | Number of days to search back in audit logs                        | No       | `7`     |
+| `time-window`         | Time window in seconds within which all 3 events must occur        | No       | `60`    |
+| `output-dir`          | Directory path to write the CSV file (can be relative or absolute) | No       | `.`     |
 
 ## Outputs
 
@@ -60,7 +64,7 @@ The action produces a workflow summary containing:
 
 ## CSV Output
 
-When suspicious activity is found, the action writes a CSV file named `suspicious-activity.csv` to the directory specified by the `output-dir` input. The calling workflow can then upload this as an artifact or process it as needed.
+When suspicious activity is found, the action writes a CSV file named `suspicious-activity-{org}.csv` to the directory specified by the `output-dir` input. The org name is included in the filename to support matrix workflows that scan multiple organizations.
 
 ## Example Workflow
 
@@ -75,13 +79,18 @@ on:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        org: [org1, org2, org3]
     steps:
-      - name: Scan Enterprise Audit Logs
+      - name: Scan Organization Audit Logs
         id: scan
         uses: pwideman/find-sha1-hulud-activity@v0
         with:
-          token: ${{ secrets.ENTERPRISE_AUDIT_TOKEN }}
-          enterprise: 'my-enterprise'
+          org: ${{ matrix.org }}
+          app-id: ${{ secrets.APP_ID }}
+          app-installation-id: ${{ secrets.APP_INSTALLATION_ID }}
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
           days-back: '7'
           time-window: '60'
           output-dir: 'output'
@@ -90,8 +99,8 @@ jobs:
         if: steps.scan.outputs.suspicious-actors-count > 0
         uses: actions/upload-artifact@v4
         with:
-          name: sha1-hulud-suspicious-activity
-          path: output/suspicious-activity.csv
+          name: sha1-hulud-suspicious-activity-${{ matrix.org }}
+          path: output/suspicious-activity-${{ matrix.org }}.csv
 
       - name: Check for suspicious activity
         if: steps.scan.outputs.suspicious-actors-count > 0
@@ -99,6 +108,13 @@ jobs:
           echo "Found ${{ steps.scan.outputs.suspicious-activities-count }} suspicious activities"
           echo "from ${{ steps.scan.outputs.suspicious-actors-count }} unique actors"
 ```
+
+## GitHub App Permissions
+
+The GitHub App used for authentication needs the following permissions:
+
+- **Organization permissions:**
+  - `Administration: Read-only` (for audit log access)
 
 ## License
 

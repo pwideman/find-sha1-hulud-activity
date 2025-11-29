@@ -6,8 +6,10 @@ import { generateCsv, generateSummary, writeSummary } from './summary.js';
 import { ActionInputs } from './types.js';
 
 export function getInputs(): ActionInputs {
-  const token = core.getInput('token', { required: true });
-  const enterprise = core.getInput('enterprise', { required: true });
+  const org = core.getInput('org', { required: true });
+  const appId = core.getInput('app-id', { required: true });
+  const appInstallationId = core.getInput('app-installation-id', { required: true });
+  const appPrivateKey = core.getInput('app-private-key', { required: true });
   const daysBackStr = core.getInput('days-back') || '7';
   const timeWindowStr = core.getInput('time-window') || '60';
   const outputDir = core.getInput('output-dir') || '.';
@@ -22,19 +24,25 @@ export function getInputs(): ActionInputs {
     throw new Error(`Invalid time-window value: ${timeWindowStr}`);
   }
 
-  return { token, enterprise, daysBack, timeWindow, outputDir };
+  return { org, appId, appInstallationId, appPrivateKey, daysBack, timeWindow, outputDir };
 }
 
 export async function run(): Promise<void> {
   try {
     const inputs = getInputs();
 
-    core.info(`Searching audit logs for enterprise: ${inputs.enterprise}`);
+    core.info(`Searching audit logs for organization: ${inputs.org}`);
     core.info(`Looking back ${inputs.daysBack} days`);
     core.info(`Time window: ${inputs.timeWindow} seconds`);
 
     core.info('Fetching audit log events...');
-    const events = await fetchAuditLogEvents(inputs.token, inputs.enterprise, inputs.daysBack);
+    const events = await fetchAuditLogEvents(
+      inputs.appId,
+      inputs.appPrivateKey,
+      inputs.appInstallationId,
+      inputs.org,
+      inputs.daysBack,
+    );
     core.info(`Retrieved ${events.length} workflow events`);
 
     core.info('Analyzing events for suspicious activity...');
@@ -58,7 +66,7 @@ export async function run(): Promise<void> {
 
     if (suspiciousActivities.length > 0) {
       const csv = generateCsv(suspiciousActivities);
-      const csvPath = writeCsvToFile(csv, inputs.outputDir);
+      const csvPath = writeCsvToFile(csv, inputs.outputDir, inputs.org);
       core.info(`CSV file written to: ${csvPath}`);
     }
 
