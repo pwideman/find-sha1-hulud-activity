@@ -1,9 +1,9 @@
 import * as core from '@actions/core';
-import { fetchAuditLogEvents } from './audit-log';
-import { writeCsvToFile } from './artifact-writer';
-import { findSuspiciousActivity } from './detector';
-import { generateCsv, generateSummary, writeSummary } from './summary';
-import { ActionInputs } from './types';
+import { writeCsvToFile } from './artifact-writer.js';
+import { fetchAuditLogEvents } from './audit-log.js';
+import { findSuspiciousActivity } from './detector.js';
+import { generateCsv, generateSummary, writeSummary } from './summary.js';
+import { ActionInputs } from './types.js';
 
 export function getInputs(): ActionInputs {
   const token = core.getInput('token', { required: true });

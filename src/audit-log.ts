@@ -1,5 +1,5 @@
 import { Octokit } from 'octokit';
-import { AuditLogEvent } from './types';
+import { AuditLogEvent } from './types.js';
 
 const PAGE_SIZE = 100;
 

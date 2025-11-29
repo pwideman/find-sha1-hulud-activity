@@ -1,4 +1,4 @@
-import { AuditLogEvent, SuspiciousActivity } from './types';
+import { AuditLogEvent, SuspiciousActivity } from './types.js';
 
 const WORKFLOW_CREATED = 'workflows.created_workflow_run';
 const WORKFLOW_COMPLETED = 'workflows.completed_workflow_run';

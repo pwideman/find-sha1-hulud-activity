@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { SuspiciousActivity } from './types';
+import { SuspiciousActivity } from './types.js';
 
 export function generateSummary(
   activities: SuspiciousActivity[],

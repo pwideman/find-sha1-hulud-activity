@@ -1,6 +1,7 @@
 {
   "name": "find-sha1-hulud-users",
   "version": "0.1.0",
+  "type": "module",
   "description": "Custom actions to look for potential Sha1-Hulud activity related to your GitHub Enterprise",
   "main": "dist/index.js",
   "scripts": {
