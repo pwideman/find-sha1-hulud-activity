@@ -33,10 +33,13 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@actions/core": "1.11.1"
+    "@actions/artifact": "2.1.9",
+    "@actions/core": "1.11.1",
+    "octokit": "4.1.2"
   },
   "devDependencies": {
     "@eslint/js": "9.39.1",
+    "@types/node": "20.19.25",
     "@vercel/ncc": "0.38.4",
     "@vitest/coverage-v8": "4.0.14",
     "eslint": "9.39.1",

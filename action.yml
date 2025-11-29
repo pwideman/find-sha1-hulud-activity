@@ -6,6 +6,28 @@ branding:
   icon: 'search'
   color: 'orange'
 
+inputs:
+  token:
+    description: 'GitHub token with audit log access (requires admin:enterprise scope for enterprise audit logs)'
+    required: true
+  enterprise:
+    description: 'The slug of the GitHub Enterprise to query audit logs for'
+    required: true
+  days-back:
+    description: 'Number of days to search back in audit logs'
+    required: false
+    default: '7'
+  time-window:
+    description: 'Time window in seconds within which all 3 workflow events must occur to be flagged'
+    required: false
+    default: '20'
+
+outputs:
+  suspicious-actors-count:
+    description: 'Number of actors with suspicious activity found'
+  suspicious-activities-count:
+    description: 'Total number of suspicious activity sequences found'
+
 runs:
   using: 'node20'
   main: 'dist/index.js'
