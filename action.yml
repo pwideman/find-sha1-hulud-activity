@@ -1,10 +1,42 @@
 name: 'Find Sha1-Hulud Activity'
-description: 'Custom action to look for potential Sha1-Hulud activity related to your GitHub Enterprise'
+description: 'Custom action to look for potential Sha1-Hulud activity in GitHub Organization audit logs'
 author: 'Paul Wideman'
 
 branding:
   icon: 'search'
   color: 'orange'
+
+inputs:
+  org:
+    description: 'The name of the GitHub Organization to query audit logs for'
+    required: true
+  app-id:
+    description: 'GitHub App ID for authentication'
+    required: true
+  app-installation-id:
+    description: 'GitHub App Installation ID for authentication'
+    required: true
+  app-private-key:
+    description: 'GitHub App private key for authentication'
+    required: true
+  days-back:
+    description: 'Number of days to search back in audit logs'
+    required: false
+    default: '7'
+  time-window:
+    description: 'Time window in seconds within which all 3 workflow events must occur to be flagged'
+    required: false
+    default: '60'
+  output-dir:
+    description: 'Directory path to write the CSV file containing suspicious activity details (can be relative or absolute)'
+    required: false
+    default: '.'
+
+outputs:
+  suspicious-actors-count:
+    description: 'Number of actors with suspicious activity found'
+  suspicious-activities-count:
+    description: 'Total number of suspicious activity sequences found'
 
 runs:
   using: 'node20'
