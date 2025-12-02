@@ -33,6 +33,10 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
 
     # Directory to write the CSV file (optional, default: '.')
     output-dir: 'output'
+
+    # Additional search phrase to filter results (optional)
+    # Example: exclude a specific user and only search in a specific repository
+    additional-phrase: '-actor:bot-user repo:my-org/my-repo'
 ```
 
 ## Inputs
@@ -46,6 +50,17 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
 | `days-back`           | Number of days to search back in audit logs                        | No       | `7`     |
 | `time-window`         | Time window in seconds within which all 3 events must occur        | No       | `60`    |
 | `output-dir`          | Directory path to write the CSV file (can be relative or absolute) | No       | `.`     |
+| `additional-phrase`   | Additional audit log search phrase to combine with action filters  | No       | -       |
+
+### Additional Phrase
+
+The `additional-phrase` input allows you to provide an arbitrary GitHub audit log search phrase that will be combined with the action's built-in search filters. This can be used to:
+
+- **Filter out specific users**: `-actor:bot-user -actor:service-account`
+- **Limit to specific repositories**: `repo:my-org/my-repo`
+- **Combine multiple filters**: `-actor:bot-user repo:my-org/critical-repo`
+
+The additional phrase is appended to the action's default search phrase, which includes the workflow action filters and date range. For more information on audit log search syntax, see the [GitHub Audit Log API documentation](https://docs.github.com/en/rest/orgs/audit-log).
 
 ## Outputs
 

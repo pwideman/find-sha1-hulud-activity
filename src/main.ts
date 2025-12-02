@@ -13,6 +13,7 @@ export function getInputs(): ActionInputs {
   const daysBackStr = core.getInput('days-back') || '7';
   const timeWindowStr = core.getInput('time-window') || '60';
   const outputDir = core.getInput('output-dir') || '.';
+  const additionalPhrase = core.getInput('additional-phrase') || '';
 
   const daysBack = parseInt(daysBackStr, 10);
   if (isNaN(daysBack) || daysBack <= 0) {
@@ -24,7 +25,16 @@ export function getInputs(): ActionInputs {
     throw new Error(`Invalid time-window value: ${timeWindowStr}`);
   }
 
-  return { org, appId, appInstallationId, appPrivateKey, daysBack, timeWindow, outputDir };
+  return {
+    org,
+    appId,
+    appInstallationId,
+    appPrivateKey,
+    daysBack,
+    timeWindow,
+    outputDir,
+    additionalPhrase,
+  };
 }
 
 export async function run(): Promise<void> {
@@ -42,6 +52,7 @@ export async function run(): Promise<void> {
       inputs.appInstallationId,
       inputs.org,
       inputs.daysBack,
+      inputs.additionalPhrase,
     );
     core.info(`Retrieved ${events.length} workflow events`);
 

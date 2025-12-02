@@ -24,4 +24,5 @@ export interface ActionInputs {
   daysBack: number;
   timeWindow: number;
   outputDir: string;
+  additionalPhrase: string;
 }

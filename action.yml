@@ -31,6 +31,10 @@ inputs:
     description: 'Directory path to write the CSV file containing suspicious activity details (can be relative or absolute)'
     required: false
     default: '.'
+  additional-phrase:
+    description: 'Additional GitHub audit log search phrase to combine with the action-generated search (e.g., to filter by user or repository)'
+    required: false
+    default: ''
 
 outputs:
   suspicious-actors-count:
