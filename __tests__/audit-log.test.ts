@@ -5,6 +5,10 @@ describe('audit-log', () => {
     let mockRequest: ReturnType<typeof vi.fn>;
     let mockGetInstallationOctokit: ReturnType<typeof vi.fn>;
 
+    // Helper to create regex for base phrase (action filters + date)
+    const basePhrasePattern =
+      /^action:workflows\.created_workflow_run action:workflows\.completed_workflow_run action:workflows\.delete_workflow_run created:>=\d{4}-\d{2}-\d{2}$/;
+
     beforeEach(() => {
       vi.resetModules();
       vi.clearAllMocks();
@@ -41,9 +45,7 @@ describe('audit-log', () => {
         'GET /orgs/{org}/audit-log',
         expect.objectContaining({
           org: 'test-org',
-          phrase: expect.stringMatching(
-            /^action:workflows\.created_workflow_run action:workflows\.completed_workflow_run action:workflows\.delete_workflow_run created:>=\d{4}-\d{2}-\d{2}$/,
-          ),
+          phrase: expect.stringMatching(basePhrasePattern),
         }),
       );
     });
@@ -65,7 +67,7 @@ describe('audit-log', () => {
         expect.objectContaining({
           org: 'test-org',
           phrase: expect.stringMatching(
-            /^action:workflows\.created_workflow_run action:workflows\.completed_workflow_run action:workflows\.delete_workflow_run created:>=\d{4}-\d{2}-\d{2} -actor:bot-user$/,
+            new RegExp(`${basePhrasePattern.source.replace('$', '')} -actor:bot-user$`),
           ),
         }),
       );
@@ -88,7 +90,7 @@ describe('audit-log', () => {
         expect.objectContaining({
           org: 'test-org',
           phrase: expect.stringMatching(
-            /^action:workflows\.created_workflow_run action:workflows\.completed_workflow_run action:workflows\.delete_workflow_run created:>=\d{4}-\d{2}-\d{2} -actor:bot-user$/,
+            new RegExp(`${basePhrasePattern.source.replace('$', '')} -actor:bot-user$`),
           ),
         }),
       );
@@ -103,9 +105,7 @@ describe('audit-log', () => {
         'GET /orgs/{org}/audit-log',
         expect.objectContaining({
           org: 'test-org',
-          phrase: expect.stringMatching(
-            /^action:workflows\.created_workflow_run action:workflows\.completed_workflow_run action:workflows\.delete_workflow_run created:>=\d{4}-\d{2}-\d{2}$/,
-          ),
+          phrase: expect.stringMatching(basePhrasePattern),
         }),
       );
     });
@@ -119,9 +119,7 @@ describe('audit-log', () => {
         'GET /orgs/{org}/audit-log',
         expect.objectContaining({
           org: 'test-org',
-          phrase: expect.stringMatching(
-            /^action:workflows\.created_workflow_run action:workflows\.completed_workflow_run action:workflows\.delete_workflow_run created:>=\d{4}-\d{2}-\d{2}$/,
-          ),
+          phrase: expect.stringMatching(basePhrasePattern),
         }),
       );
     });
@@ -143,7 +141,9 @@ describe('audit-log', () => {
         expect.objectContaining({
           org: 'test-org',
           phrase: expect.stringMatching(
-            /^action:workflows\.created_workflow_run action:workflows\.completed_workflow_run action:workflows\.delete_workflow_run created:>=\d{4}-\d{2}-\d{2} -actor:bot-user repo:my-org\/my-repo$/,
+            new RegExp(
+              `${basePhrasePattern.source.replace('$', '')} -actor:bot-user repo:my-org\\/my-repo$`,
+            ),
           ),
         }),
       );
