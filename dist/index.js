@@ -27150,7 +27150,7 @@ const WORKFLOW_ACTIONS = [
     'workflows.completed_workflow_run',
     'workflows.delete_workflow_run',
 ];
-async function fetchAuditLogEvents(appId, appPrivateKey, appInstallationId, org, daysBack) {
+async function fetchAuditLogEvents(appId, appPrivateKey, appInstallationId, org, daysBack, additionalPhrase = '') {
     const app = new octokit_1.App({
         appId,
         privateKey: appPrivateKey,
@@ -27162,7 +27162,10 @@ async function fetchAuditLogEvents(appId, appPrivateKey, appInstallationId, org,
     const allEvents = [];
     let cursor;
     const actionFilters = WORKFLOW_ACTIONS.map((action) => `action:${action}`).join(' ');
-    const phrase = `${actionFilters} created:>=${startDateString}`;
+    let phrase = `${actionFilters} created:>=${startDateString}`;
+    if (additionalPhrase.trim()) {
+        phrase = `${phrase} ${additionalPhrase.trim()}`;
+    }
     do {
         const response = await octokit.request('GET /orgs/{org}/audit-log', {
             org,
@@ -27320,6 +27323,7 @@ function getInputs() {
     const daysBackStr = core.getInput('days-back') || '7';
     const timeWindowStr = core.getInput('time-window') || '60';
     const outputDir = core.getInput('output-dir') || '.';
+    const additionalPhrase = core.getInput('additional-phrase') || '';
     const daysBack = parseInt(daysBackStr, 10);
     if (isNaN(daysBack) || daysBack <= 0) {
         throw new Error(`Invalid days-back value: ${daysBackStr}`);
@@ -27328,7 +27332,16 @@ function getInputs() {
     if (isNaN(timeWindow) || timeWindow <= 0) {
         throw new Error(`Invalid time-window value: ${timeWindowStr}`);
     }
-    return { org, appId, appInstallationId, appPrivateKey, daysBack, timeWindow, outputDir };
+    return {
+        org,
+        appId,
+        appInstallationId,
+        appPrivateKey,
+        daysBack,
+        timeWindow,
+        outputDir,
+        additionalPhrase,
+    };
 }
 async function run() {
     try {
@@ -27337,7 +27350,7 @@ async function run() {
         core.info(`Looking back ${inputs.daysBack} days`);
         core.info(`Time window: ${inputs.timeWindow} seconds`);
         core.info('Fetching audit log events...');
-        const events = await (0, audit_log_js_1.fetchAuditLogEvents)(inputs.appId, inputs.appPrivateKey, inputs.appInstallationId, inputs.org, inputs.daysBack);
+        const events = await (0, audit_log_js_1.fetchAuditLogEvents)(inputs.appId, inputs.appPrivateKey, inputs.appInstallationId, inputs.org, inputs.daysBack, inputs.additionalPhrase);
         core.info(`Retrieved ${events.length} workflow events`);
         core.info('Analyzing events for suspicious activity...');
         const suspiciousActivities = (0, detector_js_1.findSuspiciousActivity)(events, inputs.timeWindow);

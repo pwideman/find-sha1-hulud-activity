@@ -15,6 +15,7 @@ export async function fetchAuditLogEvents(
   appInstallationId: string,
   org: string,
   daysBack: number,
+  additionalPhrase: string = '',
 ): Promise<AuditLogEvent[]> {
   const app = new App({
     appId,
@@ -31,7 +32,11 @@ export async function fetchAuditLogEvents(
   let cursor: string | undefined;
 
   const actionFilters = WORKFLOW_ACTIONS.map((action) => `action:${action}`).join(' ');
-  const phrase = `${actionFilters} created:>=${startDateString}`;
+  let phrase = `${actionFilters} created:>=${startDateString}`;
+
+  if (additionalPhrase.trim()) {
+    phrase = `${phrase} ${additionalPhrase.trim()}`;
+  }
 
   do {
     const response = await octokit.request('GET /orgs/{org}/audit-log', {
