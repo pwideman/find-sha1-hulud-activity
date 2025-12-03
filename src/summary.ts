@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import { SuspiciousActivity } from './types.js';
+import { buildAuditLogSearchUrl } from './audit-log.js';
 
 export function generateSummary(
   activities: SuspiciousActivity[],
@@ -105,11 +106,7 @@ function buildActivityAuditLogUrl(
   const startTime = new Date(activity.createdAt.getTime() - contextSearchMinutes * 60 * 1000);
   const endTime = new Date(activity.deletedAt.getTime() + contextSearchMinutes * 60 * 1000);
 
-  const startDateString = startTime.toISOString().split('T')[0];
-  const endDateString = endTime.toISOString().split('T')[0];
-  const phrase = `actor:${activity.actor} created:${startDateString}..${endDateString}`;
-
-  return `https://github.com/organizations/${org}/settings/audit-log?q=${encodeURIComponent(phrase)}`;
+  return buildAuditLogSearchUrl(org, activity.actor, startTime, endTime);
 }
 
 export async function writeSummary(summary: string): Promise<void> {

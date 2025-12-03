@@ -27512,6 +27512,7 @@ exports.generateSummary = generateSummary;
 exports.writeSummary = writeSummary;
 exports.generateCsv = generateCsv;
 const core = __importStar(__nccwpck_require__(7484));
+const audit_log_js_1 = __nccwpck_require__(5595);
 function generateSummary(activities, daysBack, timeWindow, org, contextSearchMinutes) {
     const lines = [];
     lines.push('# Sha1-Hulud Activity Scan Results');
@@ -27578,10 +27579,7 @@ function generateSummary(activities, daysBack, timeWindow, org, contextSearchMin
 function buildActivityAuditLogUrl(org, activity, contextSearchMinutes) {
     const startTime = new Date(activity.createdAt.getTime() - contextSearchMinutes * 60 * 1000);
     const endTime = new Date(activity.deletedAt.getTime() + contextSearchMinutes * 60 * 1000);
-    const startDateString = startTime.toISOString().split('T')[0];
-    const endDateString = endTime.toISOString().split('T')[0];
-    const phrase = `actor:${activity.actor} created:${startDateString}..${endDateString}`;
-    return `https://github.com/organizations/${org}/settings/audit-log?q=${encodeURIComponent(phrase)}`;
+    return (0, audit_log_js_1.buildAuditLogSearchUrl)(org, activity.actor, startTime, endTime);
 }
 async function writeSummary(summary) {
     await core.summary.addRaw(summary).write();
