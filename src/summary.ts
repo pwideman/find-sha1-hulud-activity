@@ -5,6 +5,8 @@ export function generateSummary(
   activities: SuspiciousActivity[],
   daysBack: number,
   timeWindow: number,
+  org: string,
+  contextSearchMinutes: number,
 ): string {
   const lines: string[] = [];
 
@@ -13,6 +15,9 @@ export function generateSummary(
   lines.push('## Scan Parameters');
   lines.push(`- **Days scanned:** ${daysBack}`);
   lines.push(`- **Time window:** ${timeWindow} seconds`);
+  if (contextSearchMinutes > 0) {
+    lines.push(`- **Context search window:** ${contextSearchMinutes} minutes`);
+  }
   lines.push('');
 
   lines.push('## Statistics');
@@ -34,19 +39,78 @@ export function generateSummary(
   lines.push('## Suspicious Activity Details');
   lines.push('');
   lines.push(
-    '| Actor | Repository | Workflow Run ID | Created At | Completed At | Deleted At | Duration (s) |',
+    '| Actor | Repository | Workflow Run ID | Created At | Completed At | Deleted At | Duration (s) | Audit Log |',
   );
   lines.push(
-    '|-------|------------|-----------------|------------|--------------|------------|--------------|',
+    '|-------|------------|-----------------|------------|--------------|------------|--------------|-----------|',
   );
 
   for (const activity of activities) {
+    const auditLogUrl = buildActivityAuditLogUrl(org, activity, contextSearchMinutes);
     lines.push(
-      `| ${activity.actor} | ${activity.repository} | ${activity.workflowRunId} | ${formatDate(activity.createdAt)} | ${formatDate(activity.completedAt)} | ${formatDate(activity.deletedAt)} | ${activity.timeRangeSeconds} |`,
+      `| ${activity.actor} | ${activity.repository} | ${activity.workflowRunId} | ${formatDate(activity.createdAt)} | ${formatDate(activity.completedAt)} | ${formatDate(activity.deletedAt)} | ${activity.timeRangeSeconds} | [View](${auditLogUrl}) |`,
     );
   }
 
+  if (contextSearchMinutes > 0 && activities.some((a) => a.contextEvents && a.contextEvents.length > 0)) {
+    lines.push('');
+    lines.push('## Context Activity Details');
+    lines.push('');
+    lines.push(
+      'Additional audit log activity found around the suspicious activity timeframes:',
+    );
+    lines.push('');
+
+    for (let i = 0; i < activities.length; i++) {
+      const activity = activities[i];
+      if (!activity.contextEvents || activity.contextEvents.length === 0) {
+        continue;
+      }
+
+      lines.push(`### Activity ${i + 1}: ${activity.actor} in ${activity.repository}`);
+      lines.push('');
+      lines.push(
+        `Timeframe: ${formatDate(activity.createdAt)} to ${formatDate(activity.deletedAt)}`,
+      );
+      lines.push('');
+      lines.push(
+        '| Timestamp | Action | Actor | User | Repository | Workflow Run ID |',
+      );
+      lines.push('|-----------|--------|-------|------|------------|-----------------|');
+
+      for (const event of activity.contextEvents) {
+        const timestamp = formatDate(new Date(event['@timestamp']));
+        const action = event.action || '';
+        const actor = event.actor || '';
+        const user = event.user || '';
+        const repo = event.repo || '';
+        const workflowRunId = event.workflow_run_id || '';
+
+        lines.push(
+          `| ${timestamp} | ${action} | ${actor} | ${user} | ${repo} | ${workflowRunId} |`,
+        );
+      }
+
+      lines.push('');
+    }
+  }
+
   return lines.join('\n');
+}
+
+function buildActivityAuditLogUrl(
+  org: string,
+  activity: SuspiciousActivity,
+  contextSearchMinutes: number,
+): string {
+  const startTime = new Date(activity.createdAt.getTime() - contextSearchMinutes * 60 * 1000);
+  const endTime = new Date(activity.deletedAt.getTime() + contextSearchMinutes * 60 * 1000);
+
+  const startDateString = startTime.toISOString().split('T')[0];
+  const endDateString = endTime.toISOString().split('T')[0];
+  const phrase = `actor:${activity.actor} created:${startDateString}..${endDateString}`;
+
+  return `https://github.com/organizations/${org}/settings/audit-log?q=${encodeURIComponent(phrase)}`;
 }
 
 export async function writeSummary(summary: string): Promise<void> {

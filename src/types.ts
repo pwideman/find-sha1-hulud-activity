@@ -4,6 +4,10 @@ export interface AuditLogEvent {
   actor: string;
   repo?: string;
   workflow_run_id?: number;
+  user?: string;
+  actor_location?: {
+    country_code?: string;
+  };
 }
 
 export interface SuspiciousActivity {
@@ -14,6 +18,7 @@ export interface SuspiciousActivity {
   completedAt: Date;
   deletedAt: Date;
   timeRangeSeconds: number;
+  contextEvents?: AuditLogEvent[];
 }
 
 export interface ActionInputs {
@@ -25,4 +30,5 @@ export interface ActionInputs {
   timeWindow: number;
   outputDir: string;
   additionalPhrase: string;
+  contextSearchMinutes: number;
 }

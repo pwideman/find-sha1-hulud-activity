@@ -85,6 +85,7 @@ describe('main', () => {
       expect(inputs.daysBack).toBe(7);
       expect(inputs.timeWindow).toBe(60);
       expect(inputs.additionalPhrase).toBe('');
+      expect(inputs.contextSearchMinutes).toBe(10);
     });
 
     it('should parse additional-phrase input when provided', async () => {
@@ -183,6 +184,72 @@ describe('main', () => {
 
       const { getInputs } = await import('../src/main');
       expect(() => getInputs()).toThrow('Invalid time-window value: -5');
+    });
+
+    it('should parse context-search-minutes input when provided', async () => {
+      vi.doMock('@actions/core', () => ({
+        getInput: vi.fn((name: string) => {
+          switch (name) {
+            case 'org':
+              return 'test-org';
+            case 'app-id':
+              return '12345';
+            case 'app-installation-id':
+              return '67890';
+            case 'app-private-key':
+              return 'test-private-key';
+            case 'context-search-minutes':
+              return '20';
+            default:
+              return '';
+          }
+        }),
+        info: vi.fn(),
+        setOutput: vi.fn(),
+        setFailed: vi.fn(),
+        warning: vi.fn(),
+        summary: {
+          addRaw: vi.fn().mockReturnThis(),
+          write: vi.fn().mockResolvedValue(undefined),
+        },
+      }));
+
+      const { getInputs } = await import('../src/main');
+      const inputs = getInputs();
+
+      expect(inputs.contextSearchMinutes).toBe(20);
+    });
+
+    it('should throw error for invalid context-search-minutes value', async () => {
+      vi.doMock('@actions/core', () => ({
+        getInput: vi.fn((name: string) => {
+          switch (name) {
+            case 'org':
+              return 'test-org';
+            case 'app-id':
+              return '12345';
+            case 'app-installation-id':
+              return '67890';
+            case 'app-private-key':
+              return 'test-private-key';
+            case 'context-search-minutes':
+              return 'invalid';
+            default:
+              return '';
+          }
+        }),
+        info: vi.fn(),
+        setOutput: vi.fn(),
+        setFailed: vi.fn(),
+        warning: vi.fn(),
+        summary: {
+          addRaw: vi.fn().mockReturnThis(),
+          write: vi.fn().mockResolvedValue(undefined),
+        },
+      }));
+
+      const { getInputs } = await import('../src/main');
+      expect(() => getInputs()).toThrow('Invalid context-search-minutes value: invalid');
     });
   });
 

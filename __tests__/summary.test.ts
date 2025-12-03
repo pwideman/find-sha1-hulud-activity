@@ -7,7 +7,7 @@ vi.mock('@actions/core', () => import('../__fixtures__/core'));
 describe('summary', () => {
   describe('generateSummary', () => {
     it('should generate summary with no suspicious activity', () => {
-      const result = generateSummary([], 7, 60);
+      const result = generateSummary([], 7, 60, 'test-org', 10);
 
       expect(result).toContain('# Sha1-Hulud Activity Scan Results');
       expect(result).toContain('**Days scanned:** 7');
@@ -28,7 +28,7 @@ describe('summary', () => {
         },
       ];
 
-      const result = generateSummary(activities, 14, 60);
+      const result = generateSummary(activities, 14, 60, 'test-org', 10);
 
       expect(result).toContain('**Suspicious activity sequences:** 1');
       expect(result).toContain('**Unique actors:** 1');
@@ -70,11 +70,75 @@ describe('summary', () => {
         },
       ];
 
-      const result = generateSummary(activities, 7, 60);
+      const result = generateSummary(activities, 7, 60, 'test-org', 10);
 
       expect(result).toContain('**Suspicious activity sequences:** 3');
       expect(result).toContain('**Unique actors:** 2');
       expect(result).toContain('**Unique repositories affected:** 2');
+    });
+
+    it('should include audit log links in summary', () => {
+      const activities: SuspiciousActivity[] = [
+        {
+          actor: 'test-user',
+          repository: 'org/repo1',
+          workflowRunId: 12345,
+          createdAt: new Date('2024-01-01T10:00:00Z'),
+          completedAt: new Date('2024-01-01T10:00:05Z'),
+          deletedAt: new Date('2024-01-01T10:00:10Z'),
+          timeRangeSeconds: 10,
+        },
+      ];
+
+      const result = generateSummary(activities, 7, 60, 'test-org', 10);
+
+      expect(result).toContain('| Audit Log |');
+      expect(result).toContain('[View](https://github.com/organizations/test-org/settings/audit-log');
+      expect(result).toContain(encodeURIComponent('actor:test-user'));
+    });
+
+    it('should include context events in summary when present', () => {
+      const activities: SuspiciousActivity[] = [
+        {
+          actor: 'test-user',
+          repository: 'org/repo1',
+          workflowRunId: 12345,
+          createdAt: new Date('2024-01-01T10:00:00Z'),
+          completedAt: new Date('2024-01-01T10:00:05Z'),
+          deletedAt: new Date('2024-01-01T10:00:10Z'),
+          timeRangeSeconds: 10,
+          contextEvents: [
+            {
+              '@timestamp': new Date('2024-01-01T09:55:00Z').getTime(),
+              action: 'repo.access',
+              actor: 'test-user',
+              repo: 'org/repo1',
+            },
+            {
+              '@timestamp': new Date('2024-01-01T10:15:00Z').getTime(),
+              action: 'repo.create',
+              actor: 'test-user',
+              user: 'target-user',
+              repo: 'org/repo2',
+              workflow_run_id: 54321,
+            },
+          ],
+        },
+      ];
+
+      const result = generateSummary(activities, 7, 60, 'test-org', 10);
+
+      expect(result).toContain('## Context Activity Details');
+      expect(result).toContain('Activity 1: test-user in org/repo1');
+      expect(result).toContain('repo.access');
+      expect(result).toContain('repo.create');
+      expect(result).toContain('target-user');
+    });
+
+    it('should show context search window parameter when non-zero', () => {
+      const result = generateSummary([], 7, 60, 'test-org', 15);
+
+      expect(result).toContain('**Context search window:** 15 minutes');
     });
   });
 
