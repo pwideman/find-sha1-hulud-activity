@@ -116,7 +116,7 @@ export async function run(): Promise<void> {
               );
               core.info(`Context CSV file written to: ${csvPath}`);
             }
-          })
+          }),
         );
       }
     }

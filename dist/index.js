@@ -27437,8 +27437,7 @@ async function run() {
             core.warning(`Found ${suspiciousActivities.length} suspicious activity sequences from ${uniqueActors.size} actors`);
             if (inputs.contextSearchMinutes > 0) {
                 core.info('Fetching context audit log events for suspicious activities...');
-                for (let i = 0; i < suspiciousActivities.length; i++) {
-                    const activity = suspiciousActivities[i];
+                await Promise.all(suspiciousActivities.map(async (activity, i) => {
                     const startTime = new Date(activity.createdAt.getTime() - inputs.contextSearchMinutes * 60 * 1000);
                     const endTime = new Date(activity.deletedAt.getTime() + inputs.contextSearchMinutes * 60 * 1000);
                     core.info(`Fetching context for activity ${i + 1}/${suspiciousActivities.length}: ${activity.actor} in ${activity.repository}`);
@@ -27449,7 +27448,7 @@ async function run() {
                         const csvPath = (0, artifact_writer_js_1.writeContextCsvToFile)(contextEvents, inputs.outputDir, activity.actor, startTime);
                         core.info(`Context CSV file written to: ${csvPath}`);
                     }
-                }
+                }));
             }
         }
         const summary = (0, summary_js_1.generateSummary)(suspiciousActivities, inputs.daysBack, inputs.timeWindow, inputs.org, inputs.contextSearchMinutes);
