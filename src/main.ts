@@ -81,42 +81,43 @@ export async function run(): Promise<void> {
 
       if (inputs.contextSearchMinutes > 0) {
         core.info('Fetching context audit log events for suspicious activities...');
-        for (let i = 0; i < suspiciousActivities.length; i++) {
-          const activity = suspiciousActivities[i];
-          const startTime = new Date(
-            activity.createdAt.getTime() - inputs.contextSearchMinutes * 60 * 1000,
-          );
-          const endTime = new Date(
-            activity.deletedAt.getTime() + inputs.contextSearchMinutes * 60 * 1000,
-          );
+        await Promise.all(
+          suspiciousActivities.map(async (activity, i) => {
+            const startTime = new Date(
+              activity.createdAt.getTime() - inputs.contextSearchMinutes * 60 * 1000,
+            );
+            const endTime = new Date(
+              activity.deletedAt.getTime() + inputs.contextSearchMinutes * 60 * 1000,
+            );
 
-          core.info(
-            `Fetching context for activity ${i + 1}/${suspiciousActivities.length}: ${activity.actor} in ${activity.repository}`,
-          );
+            core.info(
+              `Fetching context for activity ${i + 1}/${suspiciousActivities.length}: ${activity.actor} in ${activity.repository}`,
+            );
 
-          const contextEvents = await fetchContextAuditLogEvents(
-            inputs.appId,
-            inputs.appPrivateKey,
-            inputs.appInstallationId,
-            inputs.org,
-            activity.actor,
-            startTime,
-            endTime,
-          );
-
-          activity.contextEvents = contextEvents;
-          core.info(`Found ${contextEvents.length} context events`);
-
-          if (contextEvents.length > 0) {
-            const csvPath = writeContextCsvToFile(
-              contextEvents,
-              inputs.outputDir,
+            const contextEvents = await fetchContextAuditLogEvents(
+              inputs.appId,
+              inputs.appPrivateKey,
+              inputs.appInstallationId,
+              inputs.org,
               activity.actor,
               startTime,
+              endTime,
             );
-            core.info(`Context CSV file written to: ${csvPath}`);
-          }
-        }
+
+            activity.contextEvents = contextEvents;
+            core.info(`Found ${contextEvents.length} context events`);
+
+            if (contextEvents.length > 0) {
+              const csvPath = writeContextCsvToFile(
+                contextEvents,
+                inputs.outputDir,
+                activity.actor,
+                startTime,
+              );
+              core.info(`Context CSV file written to: ${csvPath}`);
+            }
+          })
+        );
       }
     }
 
