@@ -44,17 +44,17 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
 
 ## Inputs
 
-| Input                      | Description                                                        | Required | Default |
-| -------------------------- | ------------------------------------------------------------------ | -------- | ------- |
-| `org`                      | The name of the GitHub Organization to query audit logs for        | Yes      | -       |
-| `app-id`                   | GitHub App ID for authentication                                   | Yes      | -       |
-| `app-installation-id`      | GitHub App Installation ID for authentication                      | Yes      | -       |
-| `app-private-key`          | GitHub App private key for authentication                          | Yes      | -       |
-| `days-back`                | Number of days to search back in audit logs                        | No       | `7`     |
-| `time-window`              | Time window in seconds within which all 3 events must occur        | No       | `60`    |
-| `output-dir`               | Directory path to write the CSV file (can be relative or absolute) | No       | `.`     |
-| `additional-phrase`        | Additional audit log search phrase to combine with action filters  | No       | -       |
-| `context-search-minutes`   | Minutes to search before/after suspicious activity for context     | No       | `10`    |
+| Input                    | Description                                                        | Required | Default |
+| ------------------------ | ------------------------------------------------------------------ | -------- | ------- |
+| `org`                    | The name of the GitHub Organization to query audit logs for        | Yes      | -       |
+| `app-id`                 | GitHub App ID for authentication                                   | Yes      | -       |
+| `app-installation-id`    | GitHub App Installation ID for authentication                      | Yes      | -       |
+| `app-private-key`        | GitHub App private key for authentication                          | Yes      | -       |
+| `days-back`              | Number of days to search back in audit logs                        | No       | `7`     |
+| `time-window`            | Time window in seconds within which all 3 events must occur        | No       | `60`    |
+| `output-dir`             | Directory path to write the CSV file (can be relative or absolute) | No       | `.`     |
+| `additional-phrase`      | Additional audit log search phrase to combine with action filters  | No       | -       |
+| `context-search-minutes` | Minutes to search before/after suspicious activity for context     | No       | `10`    |
 
 ### Additional Phrase
 

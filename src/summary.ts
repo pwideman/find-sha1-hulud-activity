@@ -52,13 +52,14 @@ export function generateSummary(
     );
   }
 
-  if (contextSearchMinutes > 0 && activities.some((a) => a.contextEvents && a.contextEvents.length > 0)) {
+  if (
+    contextSearchMinutes > 0 &&
+    activities.some((a) => a.contextEvents && a.contextEvents.length > 0)
+  ) {
     lines.push('');
     lines.push('## Context Activity Details');
     lines.push('');
-    lines.push(
-      'Additional audit log activity found around the suspicious activity timeframes:',
-    );
+    lines.push('Additional audit log activity found around the suspicious activity timeframes:');
     lines.push('');
 
     for (let i = 0; i < activities.length; i++) {
@@ -73,9 +74,7 @@ export function generateSummary(
         `Timeframe: ${formatDate(activity.createdAt)} to ${formatDate(activity.deletedAt)}`,
       );
       lines.push('');
-      lines.push(
-        '| Timestamp | Action | Actor | User | Repository | Workflow Run ID |',
-      );
+      lines.push('| Timestamp | Action | Actor | User | Repository | Workflow Run ID |');
       lines.push('|-----------|--------|-------|------|------------|-----------------|');
 
       for (const event of activity.contextEvents) {

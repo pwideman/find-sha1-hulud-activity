@@ -27543,7 +27543,8 @@ function generateSummary(activities, daysBack, timeWindow, org, contextSearchMin
         const auditLogUrl = buildActivityAuditLogUrl(org, activity, contextSearchMinutes);
         lines.push(`| ${activity.actor} | ${activity.repository} | ${activity.workflowRunId} | ${formatDate(activity.createdAt)} | ${formatDate(activity.completedAt)} | ${formatDate(activity.deletedAt)} | ${activity.timeRangeSeconds} | [View](${auditLogUrl}) |`);
     }
-    if (contextSearchMinutes > 0 && activities.some((a) => a.contextEvents && a.contextEvents.length > 0)) {
+    if (contextSearchMinutes > 0 &&
+        activities.some((a) => a.contextEvents && a.contextEvents.length > 0)) {
         lines.push('');
         lines.push('## Context Activity Details');
         lines.push('');

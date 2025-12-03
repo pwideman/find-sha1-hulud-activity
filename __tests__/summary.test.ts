@@ -93,7 +93,9 @@ describe('summary', () => {
       const result = generateSummary(activities, 7, 60, 'test-org', 10);
 
       expect(result).toContain('| Audit Log |');
-      expect(result).toContain('[View](https://github.com/organizations/test-org/settings/audit-log');
+      expect(result).toContain(
+        '[View](https://github.com/organizations/test-org/settings/audit-log',
+      );
       expect(result).toContain(encodeURIComponent('actor:test-user'));
     });
 
