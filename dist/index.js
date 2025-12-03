@@ -27134,10 +27134,13 @@ function writeCsvToFile(csvContent, outputDir, org) {
     fs.writeFileSync(csvPath, csvContent);
     return csvPath;
 }
+function sanitizeForFilename(input) {
+    return input.replace(/[^a-zA-Z0-9-_]/g, '_');
+}
 function writeContextCsvToFile(events, outputDir, actor, startTime) {
     fs.mkdirSync(outputDir, { recursive: true });
     const timestamp = startTime.toISOString().replace(/[:.]/g, '-').replace('Z', '');
-    const safeActor = actor.replace(/[^a-zA-Z0-9-_]/g, '_');
+    const safeActor = sanitizeForFilename(actor);
     const csvFileName = `context-${safeActor}-${timestamp}.csv`;
     const csvPath = path.join(outputDir, csvFileName);
     const csvContent = generateContextCsv(events);
@@ -27396,6 +27399,7 @@ function getInputs() {
     if (isNaN(timeWindow) || timeWindow <= 0) {
         throw new Error(`Invalid time-window value: ${timeWindowStr}`);
     }
+    // Allow zero to disable context search; positive values enable it
     const contextSearchMinutes = parseInt(contextSearchMinutesStr, 10);
     if (isNaN(contextSearchMinutes) || contextSearchMinutes < 0) {
         throw new Error(`Invalid context-search-minutes value: ${contextSearchMinutesStr}`);

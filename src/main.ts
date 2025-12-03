@@ -26,6 +26,7 @@ export function getInputs(): ActionInputs {
     throw new Error(`Invalid time-window value: ${timeWindowStr}`);
   }
 
+  // Allow zero to disable context search; positive values enable it
   const contextSearchMinutes = parseInt(contextSearchMinutesStr, 10);
   if (isNaN(contextSearchMinutes) || contextSearchMinutes < 0) {
     throw new Error(`Invalid context-search-minutes value: ${contextSearchMinutesStr}`);

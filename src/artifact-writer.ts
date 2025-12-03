@@ -12,6 +12,10 @@ export function writeCsvToFile(csvContent: string, outputDir: string, org: strin
   return csvPath;
 }
 
+function sanitizeForFilename(input: string): string {
+  return input.replace(/[^a-zA-Z0-9-_]/g, '_');
+}
+
 export function writeContextCsvToFile(
   events: AuditLogEvent[],
   outputDir: string,
@@ -21,7 +25,7 @@ export function writeContextCsvToFile(
   fs.mkdirSync(outputDir, { recursive: true });
 
   const timestamp = startTime.toISOString().replace(/[:.]/g, '-').replace('Z', '');
-  const safeActor = actor.replace(/[^a-zA-Z0-9-_]/g, '_');
+  const safeActor = sanitizeForFilename(actor);
   const csvFileName = `context-${safeActor}-${timestamp}.csv`;
   const csvPath = path.join(outputDir, csvFileName);
 
