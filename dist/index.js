@@ -27124,6 +27124,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.writeCsvToFile = writeCsvToFile;
+exports.writeContextCsvToFile = writeContextCsvToFile;
 const fs = __importStar(__nccwpck_require__(9896));
 const path = __importStar(__nccwpck_require__(6928));
 function writeCsvToFile(csvContent, outputDir, org) {
@@ -27132,6 +27133,34 @@ function writeCsvToFile(csvContent, outputDir, org) {
     const csvPath = path.join(outputDir, csvFileName);
     fs.writeFileSync(csvPath, csvContent);
     return csvPath;
+}
+function sanitizeForFilename(input) {
+    return input.replace(/[^a-zA-Z0-9-_]/g, '_');
+}
+function writeContextCsvToFile(events, outputDir, actor, startTime) {
+    fs.mkdirSync(outputDir, { recursive: true });
+    const timestamp = startTime.toISOString().replace(/[:.]/g, '-').replace('Z', '');
+    const safeActor = sanitizeForFilename(actor);
+    const csvFileName = `context-${safeActor}-${timestamp}.csv`;
+    const csvPath = path.join(outputDir, csvFileName);
+    const csvContent = generateContextCsv(events);
+    fs.writeFileSync(csvPath, csvContent);
+    return csvPath;
+}
+function generateContextCsv(events) {
+    const lines = [];
+    lines.push('Timestamp,Action,Actor,User,Repository,Workflow Run ID,Country');
+    for (const event of events) {
+        const timestamp = new Date(event['@timestamp']).toISOString();
+        const action = event.action || '';
+        const actor = event.actor || '';
+        const user = event.user || '';
+        const repo = event.repo || '';
+        const workflowRunId = event.workflow_run_id || '';
+        const country = event.actor_location?.country_code || '';
+        lines.push(`"${timestamp}","${action}","${actor}","${user}","${repo}","${workflowRunId}","${country}"`);
+    }
+    return lines.join('\n');
 }
 
 
@@ -27143,6 +27172,8 @@ function writeCsvToFile(csvContent, outputDir, org) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.fetchAuditLogEvents = fetchAuditLogEvents;
+exports.fetchContextAuditLogEvents = fetchContextAuditLogEvents;
+exports.buildAuditLogSearchUrl = buildAuditLogSearchUrl;
 const octokit_1 = __nccwpck_require__(3935);
 const PAGE_SIZE = 100;
 const WORKFLOW_ACTIONS = [
@@ -27188,6 +27219,41 @@ function extractNextCursor(linkHeader) {
         return decodeURIComponent(nextMatch[1]);
     }
     return undefined;
+}
+async function fetchContextAuditLogEvents(appId, appPrivateKey, appInstallationId, org, actor, startTime, endTime) {
+    const app = new octokit_1.App({
+        appId,
+        privateKey: appPrivateKey,
+    });
+    const octokit = await app.getInstallationOctokit(parseInt(appInstallationId, 10));
+    const startDateString = startTime.toISOString().split('T')[0];
+    const endDateString = endTime.toISOString().split('T')[0];
+    const allEvents = [];
+    let cursor;
+    const phrase = `actor:${actor} created:${startDateString}..${endDateString}`;
+    do {
+        const response = await octokit.request('GET /orgs/{org}/audit-log', {
+            org,
+            phrase,
+            per_page: PAGE_SIZE,
+            after: cursor,
+        });
+        const events = response.data;
+        const filteredEvents = events.filter((event) => {
+            const eventTime = event['@timestamp'];
+            return eventTime >= startTime.getTime() && eventTime <= endTime.getTime();
+        });
+        allEvents.push(...filteredEvents);
+        const linkHeader = response.headers.link;
+        cursor = extractNextCursor(linkHeader);
+    } while (cursor);
+    return allEvents.sort((a, b) => a['@timestamp'] - b['@timestamp']);
+}
+function buildAuditLogSearchUrl(org, actor, startTime, endTime) {
+    const startDateString = startTime.toISOString().split('T')[0];
+    const endDateString = endTime.toISOString().split('T')[0];
+    const phrase = `actor:${actor} created:${startDateString}..${endDateString}`;
+    return `https://github.com/organizations/${org}/settings/audit-log?q=${encodeURIComponent(phrase)}`;
 }
 
 
@@ -27324,6 +27390,7 @@ function getInputs() {
     const timeWindowStr = core.getInput('time-window') || '60';
     const outputDir = core.getInput('output-dir') || '.';
     const additionalPhrase = core.getInput('additional-phrase') || '';
+    const contextSearchMinutesStr = core.getInput('context-search-minutes') || '10';
     const daysBack = parseInt(daysBackStr, 10);
     if (isNaN(daysBack) || daysBack <= 0) {
         throw new Error(`Invalid days-back value: ${daysBackStr}`);
@@ -27331,6 +27398,11 @@ function getInputs() {
     const timeWindow = parseInt(timeWindowStr, 10);
     if (isNaN(timeWindow) || timeWindow <= 0) {
         throw new Error(`Invalid time-window value: ${timeWindowStr}`);
+    }
+    // Allow zero to disable context search; positive values enable it
+    const contextSearchMinutes = parseInt(contextSearchMinutesStr, 10);
+    if (isNaN(contextSearchMinutes) || contextSearchMinutes < 0) {
+        throw new Error(`Invalid context-search-minutes value: ${contextSearchMinutesStr}`);
     }
     return {
         org,
@@ -27341,6 +27413,7 @@ function getInputs() {
         timeWindow,
         outputDir,
         additionalPhrase,
+        contextSearchMinutes,
     };
 }
 async function run() {
@@ -27362,8 +27435,23 @@ async function run() {
         }
         else {
             core.warning(`Found ${suspiciousActivities.length} suspicious activity sequences from ${uniqueActors.size} actors`);
+            if (inputs.contextSearchMinutes > 0) {
+                core.info('Fetching context audit log events for suspicious activities...');
+                await Promise.all(suspiciousActivities.map(async (activity, i) => {
+                    const startTime = new Date(activity.createdAt.getTime() - inputs.contextSearchMinutes * 60 * 1000);
+                    const endTime = new Date(activity.deletedAt.getTime() + inputs.contextSearchMinutes * 60 * 1000);
+                    core.info(`Fetching context for activity ${i + 1}/${suspiciousActivities.length}: ${activity.actor} in ${activity.repository}`);
+                    const contextEvents = await (0, audit_log_js_1.fetchContextAuditLogEvents)(inputs.appId, inputs.appPrivateKey, inputs.appInstallationId, inputs.org, activity.actor, startTime, endTime);
+                    activity.contextEvents = contextEvents;
+                    core.info(`Found ${contextEvents.length} context events`);
+                    if (contextEvents.length > 0) {
+                        const csvPath = (0, artifact_writer_js_1.writeContextCsvToFile)(contextEvents, inputs.outputDir, activity.actor, startTime);
+                        core.info(`Context CSV file written to: ${csvPath}`);
+                    }
+                }));
+            }
         }
-        const summary = (0, summary_js_1.generateSummary)(suspiciousActivities, inputs.daysBack, inputs.timeWindow);
+        const summary = (0, summary_js_1.generateSummary)(suspiciousActivities, inputs.daysBack, inputs.timeWindow, inputs.org, inputs.contextSearchMinutes);
         await (0, summary_js_1.writeSummary)(summary);
         if (suspiciousActivities.length > 0) {
             const csv = (0, summary_js_1.generateCsv)(suspiciousActivities);
@@ -27427,13 +27515,17 @@ exports.generateSummary = generateSummary;
 exports.writeSummary = writeSummary;
 exports.generateCsv = generateCsv;
 const core = __importStar(__nccwpck_require__(7484));
-function generateSummary(activities, daysBack, timeWindow) {
+const audit_log_js_1 = __nccwpck_require__(5595);
+function generateSummary(activities, daysBack, timeWindow, org, contextSearchMinutes) {
     const lines = [];
     lines.push('# Sha1-Hulud Activity Scan Results');
     lines.push('');
     lines.push('## Scan Parameters');
     lines.push(`- **Days scanned:** ${daysBack}`);
     lines.push(`- **Time window:** ${timeWindow} seconds`);
+    if (contextSearchMinutes > 0) {
+        lines.push(`- **Context search window:** ${contextSearchMinutes} minutes`);
+    }
     lines.push('');
     lines.push('## Statistics');
     if (activities.length === 0) {
@@ -27449,12 +27541,48 @@ function generateSummary(activities, daysBack, timeWindow) {
     lines.push('');
     lines.push('## Suspicious Activity Details');
     lines.push('');
-    lines.push('| Actor | Repository | Workflow Run ID | Created At | Completed At | Deleted At | Duration (s) |');
-    lines.push('|-------|------------|-----------------|------------|--------------|------------|--------------|');
+    lines.push('| Actor | Repository | Workflow Run ID | Created At | Completed At | Deleted At | Duration (s) | Audit Log |');
+    lines.push('|-------|------------|-----------------|------------|--------------|------------|--------------|-----------|');
     for (const activity of activities) {
-        lines.push(`| ${activity.actor} | ${activity.repository} | ${activity.workflowRunId} | ${formatDate(activity.createdAt)} | ${formatDate(activity.completedAt)} | ${formatDate(activity.deletedAt)} | ${activity.timeRangeSeconds} |`);
+        const auditLogUrl = buildActivityAuditLogUrl(org, activity, contextSearchMinutes);
+        lines.push(`| ${activity.actor} | ${activity.repository} | ${activity.workflowRunId} | ${formatDate(activity.createdAt)} | ${formatDate(activity.completedAt)} | ${formatDate(activity.deletedAt)} | ${activity.timeRangeSeconds} | [View](${auditLogUrl}) |`);
+    }
+    if (contextSearchMinutes > 0 &&
+        activities.some((a) => a.contextEvents && a.contextEvents.length > 0)) {
+        lines.push('');
+        lines.push('## Context Activity Details');
+        lines.push('');
+        lines.push('Additional audit log activity found around the suspicious activity timeframes:');
+        lines.push('');
+        for (let i = 0; i < activities.length; i++) {
+            const activity = activities[i];
+            if (!activity.contextEvents || activity.contextEvents.length === 0) {
+                continue;
+            }
+            lines.push(`### Activity ${i + 1}: ${activity.actor} in ${activity.repository}`);
+            lines.push('');
+            lines.push(`Timeframe: ${formatDate(activity.createdAt)} to ${formatDate(activity.deletedAt)}`);
+            lines.push('');
+            lines.push('| Timestamp | Action | Actor | User | Repository | Workflow Run ID |');
+            lines.push('|-----------|--------|-------|------|------------|-----------------|');
+            for (const event of activity.contextEvents) {
+                const timestamp = formatDate(new Date(event['@timestamp']));
+                const action = event.action || '';
+                const actor = event.actor || '';
+                const user = event.user || '';
+                const repo = event.repo || '';
+                const workflowRunId = event.workflow_run_id || '';
+                lines.push(`| ${timestamp} | ${action} | ${actor} | ${user} | ${repo} | ${workflowRunId} |`);
+            }
+            lines.push('');
+        }
     }
     return lines.join('\n');
+}
+function buildActivityAuditLogUrl(org, activity, contextSearchMinutes) {
+    const startTime = new Date(activity.createdAt.getTime() - contextSearchMinutes * 60 * 1000);
+    const endTime = new Date(activity.deletedAt.getTime() + contextSearchMinutes * 60 * 1000);
+    return (0, audit_log_js_1.buildAuditLogSearchUrl)(org, activity.actor, startTime, endTime);
 }
 async function writeSummary(summary) {
     await core.summary.addRaw(summary).write();

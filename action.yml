@@ -35,6 +35,10 @@ inputs:
     description: 'Additional GitHub audit log search phrase to combine with the action-generated search (e.g., to filter by user or repository)'
     required: false
     default: ''
+  context-search-minutes:
+    description: 'Number of minutes to search before and after suspicious activity for additional audit log context'
+    required: false
+    default: '10'
 
 outputs:
   suspicious-actors-count:

@@ -37,20 +37,24 @@ The Sha1-Hulud worm exfiltrates secrets by running Actions workflows in reposito
     # Additional search phrase to filter results (optional)
     # Example: exclude a specific user and only search in a specific repository
     additional-phrase: '-actor:bot-user repo:my-org/my-repo'
+
+    # Number of minutes to search before and after suspicious activity for context (optional, default: 10)
+    context-search-minutes: '10'
 ```
 
 ## Inputs
 
-| Input                 | Description                                                        | Required | Default |
-| --------------------- | ------------------------------------------------------------------ | -------- | ------- |
-| `org`                 | The name of the GitHub Organization to query audit logs for        | Yes      | -       |
-| `app-id`              | GitHub App ID for authentication                                   | Yes      | -       |
-| `app-installation-id` | GitHub App Installation ID for authentication                      | Yes      | -       |
-| `app-private-key`     | GitHub App private key for authentication                          | Yes      | -       |
-| `days-back`           | Number of days to search back in audit logs                        | No       | `7`     |
-| `time-window`         | Time window in seconds within which all 3 events must occur        | No       | `60`    |
-| `output-dir`          | Directory path to write the CSV file (can be relative or absolute) | No       | `.`     |
-| `additional-phrase`   | Additional audit log search phrase to combine with action filters  | No       | -       |
+| Input                    | Description                                                        | Required | Default |
+| ------------------------ | ------------------------------------------------------------------ | -------- | ------- |
+| `org`                    | The name of the GitHub Organization to query audit logs for        | Yes      | -       |
+| `app-id`                 | GitHub App ID for authentication                                   | Yes      | -       |
+| `app-installation-id`    | GitHub App Installation ID for authentication                      | Yes      | -       |
+| `app-private-key`        | GitHub App private key for authentication                          | Yes      | -       |
+| `days-back`              | Number of days to search back in audit logs                        | No       | `7`     |
+| `time-window`            | Time window in seconds within which all 3 events must occur        | No       | `60`    |
+| `output-dir`             | Directory path to write the CSV file (can be relative or absolute) | No       | `.`     |
+| `additional-phrase`      | Additional audit log search phrase to combine with action filters  | No       | -       |
+| `context-search-minutes` | Minutes to search before/after suspicious activity for context     | No       | `10`    |
 
 ### Additional Phrase
 
@@ -61,6 +65,17 @@ The `additional-phrase` input allows you to provide an arbitrary GitHub audit lo
 - **Combine multiple filters**: `-actor:bot-user repo:my-org/critical-repo`
 
 The additional phrase is appended to the action's default search phrase, which includes the workflow action filters and date range. For more information on audit log search syntax, see the [GitHub Audit Log API documentation](https://docs.github.com/en/rest/orgs/audit-log).
+
+### Context Search
+
+The `context-search-minutes` input controls how many minutes before and after the suspicious activity the action will search for additional audit log events. This provides context to help determine what else the user was doing around the time of the suspicious activity.
+
+When `context-search-minutes` is greater than 0 (default is 10), the action will:
+
+1. Search for all audit log events from the suspicious actor within the specified time window before the first suspicious event and after the last suspicious event
+2. Generate individual CSV files for each suspicious activity instance containing the context events
+3. Display the context events in the workflow summary for review
+4. Include a link to the GitHub audit log search in the summary table
 
 ## Outputs
 
@@ -73,13 +88,18 @@ The additional phrase is appended to the action's default search phrase, which i
 
 The action produces a workflow summary containing:
 
-- Scan parameters (days scanned, time window)
+- Scan parameters (days scanned, time window, context search window)
 - Statistics (number of suspicious sequences, unique actors, affected repositories)
-- A table with details of each suspicious activity (actor, repository, workflow run ID, timestamps, duration)
+- A table with details of each suspicious activity (actor, repository, workflow run ID, timestamps, duration, and a link to the audit log search)
+- When context search is enabled: detailed tables showing additional audit log activity found around each suspicious activity instance
 
 ## CSV Output
 
-When suspicious activity is found, the action writes a CSV file named `suspicious-activity-{org}.csv` to the directory specified by the `output-dir` input. The org name is included in the filename to support matrix workflows that scan multiple organizations.
+When suspicious activity is found, the action writes CSV files to the directory specified by the `output-dir` input:
+
+1. **Main suspicious activity file**: `suspicious-activity-{org}.csv` - Contains a summary of all suspicious activity sequences. The org name is included in the filename to support matrix workflows that scan multiple organizations.
+
+2. **Context activity files** (when `context-search-minutes` > 0): `context-{actor}-{timestamp}.csv` - Individual files for each suspicious activity instance containing expanded audit log entries showing other activity from the actor around the suspicious timeframe. These files include the actor's username and the search start timestamp in the filename.
 
 ## Example Workflow
 
@@ -115,7 +135,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sha1-hulud-suspicious-activity-${{ matrix.org }}
-          path: output/suspicious-activity-${{ matrix.org }}.csv
+          path: output/*.csv
 
       - name: Check for suspicious activity
         if: steps.scan.outputs.suspicious-actors-count > 0

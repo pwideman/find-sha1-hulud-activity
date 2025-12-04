@@ -149,4 +149,162 @@ describe('audit-log', () => {
       );
     });
   });
+
+  describe('fetchContextAuditLogEvents', () => {
+    let mockRequest: ReturnType<typeof vi.fn>;
+    let mockGetInstallationOctokit: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      vi.resetModules();
+      vi.clearAllMocks();
+
+      mockRequest = vi.fn().mockResolvedValue({
+        data: [],
+        headers: {},
+      });
+
+      mockGetInstallationOctokit = vi.fn().mockResolvedValue({
+        request: mockRequest,
+      });
+
+      vi.doMock('octokit', () => ({
+        App: class {
+          getInstallationOctokit = mockGetInstallationOctokit;
+        },
+      }));
+    });
+
+    afterEach(() => {
+      vi.clearAllMocks();
+      vi.resetModules();
+    });
+
+    it('should construct phrase with actor and date range', async () => {
+      const { fetchContextAuditLogEvents } = await import('../src/audit-log');
+
+      const startTime = new Date('2024-01-01T00:00:00Z');
+      const endTime = new Date('2024-01-02T00:00:00Z');
+
+      await fetchContextAuditLogEvents(
+        'app-id',
+        'private-key',
+        'install-id',
+        'test-org',
+        'test-user',
+        startTime,
+        endTime,
+      );
+
+      expect(mockRequest).toHaveBeenCalledWith(
+        'GET /orgs/{org}/audit-log',
+        expect.objectContaining({
+          org: 'test-org',
+          phrase: 'actor:test-user created:2024-01-01..2024-01-02',
+        }),
+      );
+    });
+
+    it('should filter events by timestamp', async () => {
+      const startTime = new Date('2024-01-01T10:00:00Z');
+      const endTime = new Date('2024-01-01T12:00:00Z');
+
+      const mockEvents = [
+        {
+          '@timestamp': new Date('2024-01-01T09:00:00Z').getTime(),
+          action: 'repo.access',
+          actor: 'test-user',
+        },
+        {
+          '@timestamp': new Date('2024-01-01T11:00:00Z').getTime(),
+          action: 'repo.create',
+          actor: 'test-user',
+        },
+        {
+          '@timestamp': new Date('2024-01-01T13:00:00Z').getTime(),
+          action: 'repo.delete',
+          actor: 'test-user',
+        },
+      ];
+
+      mockRequest.mockResolvedValue({
+        data: mockEvents,
+        headers: {},
+      });
+
+      const { fetchContextAuditLogEvents } = await import('../src/audit-log');
+
+      const result = await fetchContextAuditLogEvents(
+        'app-id',
+        'private-key',
+        'install-id',
+        'test-org',
+        'test-user',
+        startTime,
+        endTime,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].action).toBe('repo.create');
+    });
+
+    it('should sort events by timestamp', async () => {
+      const startTime = new Date('2024-01-01T10:00:00Z');
+      const endTime = new Date('2024-01-01T12:00:00Z');
+
+      const mockEvents = [
+        {
+          '@timestamp': new Date('2024-01-01T11:30:00Z').getTime(),
+          action: 'repo.delete',
+          actor: 'test-user',
+        },
+        {
+          '@timestamp': new Date('2024-01-01T11:00:00Z').getTime(),
+          action: 'repo.create',
+          actor: 'test-user',
+        },
+        {
+          '@timestamp': new Date('2024-01-01T11:15:00Z').getTime(),
+          action: 'repo.access',
+          actor: 'test-user',
+        },
+      ];
+
+      mockRequest.mockResolvedValue({
+        data: mockEvents,
+        headers: {},
+      });
+
+      const { fetchContextAuditLogEvents } = await import('../src/audit-log');
+
+      const result = await fetchContextAuditLogEvents(
+        'app-id',
+        'private-key',
+        'install-id',
+        'test-org',
+        'test-user',
+        startTime,
+        endTime,
+      );
+
+      expect(result).toHaveLength(3);
+      expect(result[0].action).toBe('repo.create');
+      expect(result[1].action).toBe('repo.access');
+      expect(result[2].action).toBe('repo.delete');
+    });
+  });
+
+  describe('buildAuditLogSearchUrl', () => {
+    it('should generate correct URL with encoded parameters', async () => {
+      const { buildAuditLogSearchUrl } = await import('../src/audit-log');
+
+      const startTime = new Date('2024-01-01T10:00:00Z');
+      const endTime = new Date('2024-01-02T12:00:00Z');
+
+      const url = buildAuditLogSearchUrl('test-org', 'test-user', startTime, endTime);
+
+      expect(url).toContain('https://github.com/organizations/test-org/settings/audit-log?q=');
+      expect(url).toContain(encodeURIComponent('actor:test-user'));
+      expect(url).toContain(encodeURIComponent('created:2024-01-01..2024-01-02'));
+    });
+  });
 });
